@@ -614,6 +614,59 @@ const GLOBAL_CSS = `
     .result-row { grid-template-columns: 24px 1fr 70px 60px !important; gap: 8px !important; }
     .resil-grid { grid-template-columns: 1fr !important; }
   }
+
+  /* ── Animations ── */
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateX(-6px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes popIn {
+    0%   { transform: scale(.88); opacity: 0; }
+    60%  { transform: scale(1.04); }
+    100% { transform: scale(1);   opacity: 1; }
+  }
+  @keyframes pulseGlow {
+    0%   { box-shadow: 0 0 0 0 rgba(155,0,64,.45); }
+    60%  { box-shadow: 0 0 0 8px rgba(155,0,64,0); }
+    100% { box-shadow: 0 0 0 0 rgba(155,0,64,0); }
+  }
+  @keyframes rowSlide {
+    from { background-color: #FFF0D0; }
+    to   { background-color: #FFF0D0; }
+  }
+  @keyframes resultPop {
+    0%   { transform: scale(1); }
+    30%  { transform: scale(1.06); }
+    60%  { transform: scale(.97); }
+    100% { transform: scale(1); }
+  }
+  @keyframes shimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position:  200% center; }
+  }
+
+  .card-anim {
+    animation: fadeSlideUp .28s cubic-bezier(.22,.68,0,1.2) both;
+  }
+  .seg-anim {
+    animation: fadeSlideIn .22s cubic-bezier(.22,.68,0,1.2) both;
+  }
+  .delay-btn {
+    transition: all .18s cubic-bezier(.22,.68,0,1.2) !important;
+  }
+  .delay-btn.active {
+    animation: pulseGlow .5s ease-out;
+  }
+  .result-amount-anim {
+    animation: resultPop .35s cubic-bezier(.22,.68,0,1.2);
+  }
+  .bareme-row-active {
+    animation: fadeSlideIn .2s ease both;
+  }
 `;
 
 // ═══════════════════════════════════════════════════════════════════
@@ -640,6 +693,40 @@ function IconTitle({icon,label,color}){
     <span style={{display:"inline-flex",alignItems:"center",gap:7,color:color||"inherit"}}>
       <span style={{opacity:.8,display:"inline-flex",alignItems:"center"}}>{icon}</span>
       {label}
+    </span>
+  );
+}
+
+// ── Compteur animé (count-up) ────────────────────────────────────────
+function useAnimatedNumber(target, duration=520){
+  const [display, setDisplay] = React.useState(target);
+  const rafRef = React.useRef(null);
+  const prevRef = React.useRef(target);
+  React.useEffect(()=>{
+    const from = prevRef.current;
+    const to   = target;
+    if(from === to){ setDisplay(to); return; }
+    const startTime = performance.now();
+    const tick = (now)=>{
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // ease-out-cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(from + (to - from) * eased);
+      if(progress < 1){ rafRef.current = requestAnimationFrame(tick); }
+      else{ setDisplay(to); prevRef.current = to; }
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return ()=>{ if(rafRef.current) cancelAnimationFrame(rafRef.current); };
+  },[target, duration]);
+  return display;
+}
+
+function AnimatedNumber({value, decimals=2, style={}, className=""}){
+  const animated = useAnimatedNumber(value);
+  return(
+    <span className={className} style={style}>
+      {animated.toFixed(decimals)}
     </span>
   );
 }
@@ -1018,7 +1105,7 @@ function App(){
           </div>
 
           {/* Segments */}
-          <div className="card">
+          <div className="card card-anim">
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <h2 className="section-title" style={{margin:0}}><IconTitle icon={Icon.train} label="Segments du voyage"/></h2>
@@ -1052,7 +1139,7 @@ function App(){
               else if(isMax){segBg=C.greenLight;segBorder="#A8DFC0";}
 
               return(
-                <div key={seg.id} className="seg-card" style={{
+                <div key={seg.id} className="seg-card seg-anim" style={{
                   marginBottom:10,padding:"16px 18px",borderRadius:12,
                   background:segBg,border:`1px solid ${segBorder}`,
                 }}>
@@ -1219,8 +1306,10 @@ function App(){
                         fontFamily:"inherit",textAlign:"left",
                         border:`1.5px solid ${active?color:border}`,
                         background:active?color:bg,
-                        boxShadow:active?`0 2px 8px ${color}40`:"none",
-                        transition:"all .15s",
+                        boxShadow:active?`0 3px 12px ${color}55`:"none",
+                        transform:active?"scale(1.04)":"scale(1)",
+                        transition:"all .22s cubic-bezier(.22,.68,0,1.2)",
+                        animation:active?"pulseGlow .55s ease-out":"none",
                       }}>
                       <div style={{fontSize:12,fontWeight:700,color:active?"white":color,lineHeight:1.2}}>{label}</div>
                       <div style={{fontSize:10,color:active?"rgba(255,255,255,.7)":C.textMuted,marginTop:2}}>{sub}</div>
@@ -1300,7 +1389,7 @@ function App(){
           )}
 
           {/* ── Indemnisation exceptionnelle ── */}
-          <div className="card" style={{border:`1.5px solid ${C.amberMid}`,background:C.amberLight}}>
+          <div className="card card-anim" style={{border:`1.5px solid ${C.amberMid}`,background:C.amberLight,animationDelay:".12s"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
               <h2 className="section-title" style={{margin:0,color:C.amber}}><IconTitle icon={Icon.star} label="Indemnisation exceptionnelle" color={C.amber}/></h2>
               <span style={{fontSize:11,background:"#FFF0A0",color:C.amber,padding:"2px 8px",borderRadius:10,fontWeight:700,border:`1px solid ${C.amberMid}`}}>INCIDENTS MAJEURS</span>
@@ -1360,7 +1449,7 @@ function App(){
 
           {/* ── Résultats ── */}
           {computed&&(
-            <div style={{background:"white",borderRadius:14,border:`1px solid ${C.borderMid}`,overflow:"hidden",boxShadow:"0 6px 28px rgba(0,0,0,.12)"}}>
+            <div key={computed.total.toFixed(2)} className="card-anim" style={{background:"white",borderRadius:14,border:`1px solid ${C.borderMid}`,overflow:"hidden",boxShadow:"0 6px 28px rgba(0,0,0,.12)"}}>
 
               {/* En-tête résultat */}
               <div style={{
@@ -1390,7 +1479,10 @@ function App(){
                       color:"white",fontSize:34,fontWeight:800,
                       letterSpacing:"-.5px",fontVariantNumeric:"tabular-nums lining-nums",
                       fontFamily:"'Inter','DM Sans',sans-serif",fontFeatureSettings:'"tnum" 1,"lnum" 1"'
-                    }}>{computed.total.toFixed(2)} €</div>
+                    }}>
+                      <AnimatedNumber value={computed.total} style={{fontVariantNumeric:"tabular-nums"}}/>
+                      {" €"}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1631,7 +1723,9 @@ function App(){
             <div style={{background:"white",borderRadius:14,border:`1px solid ${C.borderMid}`,overflow:"hidden",boxShadow:"0 6px 24px rgba(0,0,0,.10)"}}>
               <div style={{background:`linear-gradient(135deg,#002B7A,${C.blue})`,padding:"18px 22px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                 <div style={{color:"rgba(255,255,255,.65)",fontSize:12,fontWeight:500}}>Total remboursable estimé</div>
-                <div style={{color:"white",fontSize:32,fontWeight:800,letterSpacing:"-.5px",fontVariantNumeric:"tabular-nums lining-nums",fontFamily:"'Inter','DM Sans',sans-serif"}}>{fraisComputed.total.toFixed(2)} €</div>
+                <div style={{color:"white",fontSize:32,fontWeight:800,letterSpacing:"-.5px",fontVariantNumeric:"tabular-nums lining-nums",fontFamily:"'Inter','DM Sans',sans-serif"}}>
+                  <AnimatedNumber value={fraisComputed.total}/>{" €"}
+                </div>
               </div>
               <div style={{padding:"8px 16px"}}>
                 {fraisComputed.results.map((r,i)=>(
@@ -1728,7 +1822,12 @@ function App(){
                   {BAREME_ROWS.map(({label,min,max,vals},i)=>{
                     const active=finalDelay>=min&&finalDelay<=max&&finalDelay>=30;
                     return(
-                      <tr key={label} style={{background:active?"#FFF0D0":i%2===0?"white":C.surface2,transition:"background .2s"}}>
+                      <tr key={label} style={{
+                        background:active?"#FFF0D0":i%2===0?"white":C.surface2,
+                        transition:"background .25s ease, font-weight .15s",
+                        animation:active?"fadeSlideIn .2s ease both":"none",
+                        fontWeight:active?700:400,
+                      }}>
                         <td style={{padding:"9px 12px",fontWeight:700,color:active?C.amber:C.text,whiteSpace:"nowrap"}}>
                           {active&&<span style={{marginRight:5,fontSize:11,background:C.amber,color:"white",borderRadius:4,padding:"1px 5px"}}>→</span>}
                           {label}
@@ -2596,7 +2695,8 @@ function App(){
             {computed.exceptBonus>0&&<span style={{color:"#FFD700",marginLeft:8,fontSize:11}}>⭐ +{computed.exceptBonus.toFixed(2)} € exception</span>}
           </div>
           <div style={{color:"white",fontSize:26,fontWeight:900,fontVariantNumeric:"tabular-nums",fontFamily:"'Inter','DM Sans',sans-serif",letterSpacing:"-.5px"}}>
-            {computed.total.toFixed(2)} €
+            <AnimatedNumber value={computed.total}/>
+            {" €"}
           </div>
         </div>
       )}
@@ -2611,7 +2711,8 @@ function App(){
             🧾 <strong style={{color:"white"}}>{fraisComputed.results.length} poste{fraisComputed.results.length>1?"s":""}</strong> · Frais annexes remboursables
           </div>
           <div style={{color:"white",fontSize:26,fontWeight:900,fontVariantNumeric:"tabular-nums",fontFamily:"'Inter','DM Sans',sans-serif",letterSpacing:"-.5px"}}>
-            {fraisComputed.total.toFixed(2)} €
+            <AnimatedNumber value={fraisComputed.total}/>
+            {" €"}
           </div>
         </div>
       )}
