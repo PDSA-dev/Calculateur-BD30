@@ -841,18 +841,13 @@ function AmountPill({children,color=C.red,size=15}){
 function LogoApp({size=72}){
   const s=size||36;
   return(
-    <svg width={s} height={s} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0,display:"block",borderRadius:s*0.18}}>
-      {/* Fond marine foncé */}
-      <rect width="100" height="100" rx="18" fill="#131F3A"/>
+    <svg width={s} height={s} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0,display:"block"}}>
+      {/* Pas de fond — transparent */}
 
       {/* ── Horloge (orange/or derrière le train) ── */}
-      {/* Cercle extérieur (bordure marine) */}
-      <circle cx="50" cy="46" r="30" fill="#1C2D4E"/>
-      {/* Face de l'horloge orange */}
+      <circle cx="50" cy="46" r="30" fill="#1C2D4E" fillOpacity="0.5"/>
       <circle cx="50" cy="46" r="26" fill="#F0A020"/>
-      {/* Reflet/texture légère */}
       <circle cx="50" cy="46" r="26" fill="#F5B535" fillOpacity="0.4"/>
-      {/* Tirets des heures */}
       {[0,30,60,90,120,150,180,210,240,270,300,330].map((deg,i)=>{
         const rad=deg*Math.PI/180;
         const r1=20, r2=23;
@@ -860,41 +855,23 @@ function LogoApp({size=72}){
         const x2=50+r2*Math.sin(rad), y2=46-r2*Math.cos(rad);
         return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="white" strokeWidth={i%3===0?"1.8":"0.8"} strokeLinecap="round" strokeOpacity="0.7"/>;
       })}
-      {/* Aiguille minute (vers 12h passé) */}
       <line x1="50" y1="46" x2="50" y2="28" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-      {/* Aiguille heure (vers 10h) */}
       <line x1="50" y1="46" x2="40" y2="54" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-      {/* Centre */}
       <circle cx="50" cy="46" r="2" fill="white"/>
 
-      {/* ── Train (3 wagons, devant l'horloge) ── */}
-      {/* Châssis global */}
+      {/* ── Train (3 wagons) ── */}
       <rect x="6" y="60" width="88" height="26" rx="7" fill="#1C2D4E"/>
-
-      {/* Wagon gauche — gris ardoise */}
       <rect x="8" y="62" width="26" height="22" rx="5" fill="#4A5568"/>
-      {/* Fenêtre wagon gauche */}
       <rect x="12" y="65" width="14" height="9" rx="2" fill="white" fillOpacity="0.65"/>
-
-      {/* Wagon central — calculatrice */}
       <rect x="36" y="62" width="28" height="22" rx="3" fill="#7A8FA8"/>
-      {/* Écran calculatrice */}
       <rect x="38.5" y="64" width="23" height="8" rx="1.5" fill="#B8CCDD"/>
-      {/* Chiffres 888 */}
       <text x="50" y="70.5" textAnchor="middle" fill="#131F3A" fontSize="5.5" fontWeight="bold" fontFamily="monospace">888</text>
-      {/* Touches (2 rangées × 3) */}
       {[[40,74],[47,74],[54,74],[40,79],[47,79],[54,79]].map(([x,y],i)=>(
         <rect key={i} x={x} y={y} width="5.5" height="3.5" rx="0.8" fill="#131F3A" fillOpacity="0.65"/>
       ))}
-
-      {/* Wagon droit — jaune, nez TGV */}
       <rect x="66" y="62" width="24" height="22" rx="5" fill="#F5A623"/>
-      {/* Nez avant arrondi */}
       <ellipse cx="88" cy="73" rx="5" ry="9" fill="#E8940F"/>
-      {/* Fenêtre wagon jaune */}
       <rect x="68" y="65" width="13" height="8" rx="2" fill="#B8D0E8" fillOpacity="0.75"/>
-
-      {/* Roues */}
       {[18,50,82].map(cx=>(
         <g key={cx}>
           <circle cx={cx} cy="87" r="5" fill="#0D1828" stroke="#2A3A5C" strokeWidth="1"/>
@@ -1065,7 +1042,7 @@ function App(){
         boxShadow:"0 1px 4px rgba(0,0,0,.18)",flexShrink:0,
       }}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <LogoApp size={24}/>
+          <LogoApp size={36}/>
           <span style={{color:"white",fontWeight:800,fontSize:13,letterSpacing:"-.2px",whiteSpace:"nowrap"}}>
             Calculateur BD30/G30
           </span>
