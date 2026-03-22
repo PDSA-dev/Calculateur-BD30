@@ -675,6 +675,15 @@ const GLOBAL_CSS = `
   .bareme-row-active {
     animation: fadeSlideIn .2s ease both;
   }
+  .acc-body {
+    animation: fadeSlideUp .22s cubic-bezier(.22,.68,0,1.2) both;
+    overflow: hidden;
+  }
+  .acc-chevron {
+    transition: transform .22s cubic-bezier(.22,.68,0,1.2);
+    display: inline-flex; align-items: center;
+  }
+  .acc-chevron.open { transform: rotate(180deg); }
 `;
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1011,6 +1020,7 @@ function App(){
   const[retractType,setRetractType]=useState("abo"); // "abo" | "carte"
   const[datesSection,setDatesSection]=useState(null);
   const[baremeFilter,setBaremeFilter]=useState("all");
+  const[openBareme,setOpenBareme]=useState(new Set(["standard"]));
 
   const aboType=ABONNEMENTS_MAX.find(a=>a.id===aboTypeId)||ABONNEMENTS_MAX[2];
   const mensualiteEffective=
@@ -1815,9 +1825,6 @@ function App(){
                   </div>
                 ))}
               </div>
-              <div style={{background:C.surface2,borderTop:`1px solid ${C.border}`,padding:"11px 20px",fontSize:11.5,color:C.textMuted,lineHeight:1.8}}>
-                ⚠️ Montant réel <strong>sans dépasser</strong> le barème · Factures acquittées obligatoires · <strong>Non remboursés :</strong> frais aériens, covoiturage, péage, essence
-              </div>
             </div>
           )}
         </div>)}
@@ -1844,231 +1851,289 @@ function App(){
               vals:{tgv_dom:"75%",tgv_int:"50%",ouigo:"100%",ter:"50%",ter_krono:"75%"}},
           ];
           const visCols=baremeFilter==="all"?BAREME_COLS:BAREME_COLS.filter(c=>c.id===baremeFilter);
+
+          const toggleAcc=(id)=>setOpenBareme(prev=>{
+            const next=new Set(prev);
+            next.has(id)?next.delete(id):next.add(id);
+            return next;
+          });
+
+          const AccHeader=({id,icon,label,color,badge})=>{
+            const isOpen=openBareme.has(id);
+            return(
+              <button onClick={()=>toggleAcc(id)} style={{
+                width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
+                padding:"14px 18px",background:"none",border:"none",cursor:"pointer",
+                fontFamily:"inherit",textAlign:"left",
+                borderBottom:isOpen?`1px solid ${C.border}`:"none",
+              }}>
+                <span style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{display:"inline-flex",alignItems:"center",color:color||C.text,opacity:.8}}>{icon}</span>
+                  <span style={{fontSize:13,fontWeight:700,color:color||C.text}}>{label}</span>
+                  {badge&&<span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,
+                    background:`${color||C.red}18`,color:color||C.red,border:`1px solid ${color||C.red}30`}}>{badge}</span>}
+                  {id==="standard"&&finalDelay>=30&&(
+                    <span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,
+                      background:"#FFF0A0",color:C.amber,border:`1px solid ${C.amberMid}`}}>→ {finalDelay} min actif</span>
+                  )}
+                </span>
+                <span className={`acc-chevron${isOpen?" open":""}`} style={{color:C.textMuted}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </span>
+              </button>
+            );
+          };
+
           return(
           <div id="panel-bareme" role="tabpanel" aria-label="Barèmes et règles">
 
-          {/* ── Tableau filtrable ── */}
-          <div className="card">
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexWrap:"wrap",gap:10}}>
-              <h2 className="section-title" style={{margin:0}}><IconTitle icon={Icon.chart} label="G30 — Barème standard"/></h2>
-              <div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
-                <span style={{fontSize:11,color:C.textMuted,fontWeight:600,display:"flex",alignItems:"center",gap:4}}>
-                  {Icon.filter} Filtrer :
-                </span>
-                {[{id:"all",label:"Tous",color:C.red},...BAREME_COLS].map(c=>(
-                  <button key={c.id} onClick={()=>setBaremeFilter(c.id)} style={{
-                    padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:baremeFilter===c.id?700:500,
-                    border:`1.5px solid ${baremeFilter===c.id?(c.color||C.red):C.border}`,
-                    background:baremeFilter===c.id?(c.color||C.red):"white",
-                    color:baremeFilter===c.id?"white":C.textMid,
-                    cursor:"pointer",fontFamily:"inherit",transition:"all .15s",
-                  }}>{c.label}</button>
-                ))}
-              </div>
-            </div>
-            <div style={{overflowX:"auto"}}>
-              <table className="bareme-table" style={{minWidth:baremeFilter==="all"?500:220}}>
-                <thead>
-                  <tr>
-                    <th style={{background:C.red,color:"white",padding:"9px 12px",textAlign:"left",whiteSpace:"nowrap"}}>Retard</th>
-                    {visCols.map(c=>(
-                      <th key={c.id} style={{background:c.color,color:"white",padding:"9px 12px",textAlign:"center",whiteSpace:"nowrap"}}>{c.label}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {BAREME_ROWS.map(({label,min,max,vals},i)=>{
-                    const active=finalDelay>=min&&finalDelay<=max&&finalDelay>=30;
-                    return(
-                      <tr key={label} style={{
-                        background:active?"#FFF0D0":i%2===0?"white":C.surface2,
-                        transition:"background .25s ease, font-weight .15s",
-                        animation:active?"fadeSlideIn .2s ease both":"none",
-                        fontWeight:active?700:400,
-                      }}>
-                        <td style={{padding:"9px 12px",fontWeight:700,color:active?C.amber:C.text,whiteSpace:"nowrap"}}>
-                          {active&&<span style={{marginRight:5,fontSize:11,background:C.amber,color:"white",borderRadius:4,padding:"1px 5px"}}>→</span>}
-                          {label}
-                        </td>
-                        {visCols.map(c=>{
-                          const v=vals[c.id];
-                          return(
-                            <td key={c.id} style={{padding:"9px 12px",textAlign:"center",
-                              fontWeight:active?700:600,fontSize:13,
-                              color:v==="0%"?C.textMuted:active?C.amber:c.color}}>
-                              {v}
-                            </td>
-                          );
-                        })}
+          {/* ── G30 Standard — accordéon ── */}
+          <div className="card" style={{padding:0,overflow:"hidden"}}>
+            <AccHeader id="standard" icon={Icon.chart} label="G30 — Barème standard" color={C.red}/>
+            {openBareme.has("standard")&&(
+              <div className="acc-body" style={{padding:"14px 18px"}}>
+                {/* Filtre transporteur */}
+                <div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap",marginBottom:12}}>
+                  <span style={{fontSize:11,color:C.textMuted,fontWeight:600,display:"flex",alignItems:"center",gap:4}}>
+                    {Icon.filter} Filtrer :
+                  </span>
+                  {[{id:"all",label:"Tous",color:C.red},...BAREME_COLS].map(c=>(
+                    <button key={c.id} onClick={()=>setBaremeFilter(c.id)} style={{
+                      padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:baremeFilter===c.id?700:500,
+                      border:`1.5px solid ${baremeFilter===c.id?(c.color||C.red):C.border}`,
+                      background:baremeFilter===c.id?(c.color||C.red):"white",
+                      color:baremeFilter===c.id?"white":C.textMid,
+                      cursor:"pointer",fontFamily:"inherit",transition:"all .15s",
+                    }}>{c.label}</button>
+                  ))}
+                </div>
+                <div style={{overflowX:"auto"}}>
+                  <table className="bareme-table" style={{minWidth:baremeFilter==="all"?500:220}}>
+                    <thead>
+                      <tr>
+                        <th style={{background:C.red,color:"white",padding:"9px 12px",textAlign:"left",whiteSpace:"nowrap"}}>Retard</th>
+                        {visCols.map(c=>(
+                          <th key={c.id} style={{background:c.color,color:"white",padding:"9px 12px",textAlign:"center",whiteSpace:"nowrap"}}>{c.label}</th>
+                        ))}
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <div style={{marginTop:10,fontSize:11,color:C.textMuted,display:"flex",gap:12,flexWrap:"wrap",padding:"6px 0"}}>
-              <span>⚑ BAD seul = 30–59 min (TGV INOUI & Intercités)</span>
-              <span>· OUIGO 0% pour 30–59 min</span>
-              <span>· Seuil minimum : <strong>4€</strong></span>
-              {finalDelay>=30&&<span style={{color:C.amber,fontWeight:700}}>→ Retard actif : {finalDelay} min</span>}
-            </div>
+                    </thead>
+                    <tbody>
+                      {BAREME_ROWS.map(({label,min,max,vals},i)=>{
+                        const active=finalDelay>=min&&finalDelay<=max&&finalDelay>=30;
+                        return(
+                          <tr key={label} className={active?"bareme-row-active":""} style={{
+                            background:active?"#FFF0D0":i%2===0?"white":C.surface2,
+                            transition:"background .25s ease",fontWeight:active?700:400,
+                          }}>
+                            <td style={{padding:"9px 12px",fontWeight:700,color:active?C.amber:C.text,whiteSpace:"nowrap"}}>
+                              {active&&<span style={{marginRight:5,fontSize:11,background:C.amber,color:"white",borderRadius:4,padding:"1px 5px"}}>→</span>}
+                              {label}
+                            </td>
+                            {visCols.map(c=>{
+                              const v=vals[c.id];
+                              return(
+                                <td key={c.id} style={{padding:"9px 12px",textAlign:"center",
+                                  fontWeight:active?700:600,fontSize:13,
+                                  color:v==="0%"?C.textMuted:active?C.amber:c.color}}>
+                                  {v}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{marginTop:10,fontSize:11,color:C.textMuted,display:"flex",gap:12,flexWrap:"wrap",padding:"4px 0"}}>
+                  <span>⚑ BAD seul = 30–59 min (TGV INOUI & Intercités)</span>
+                  <span>· OUIGO 0% pour 30–59 min</span>
+                  <span>· Seuil minimum : <strong>4€</strong></span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Abonnés Max */}
-          <div className="card" style={{borderTop:`3px solid ${C.green}`}}>
-            <h2 className="section-title" style={{color:C.green,marginBottom:4}}><IconTitle icon={Icon.ticket} label="G30 — Abonnés Max & Forfaits (0€)" color={C.green}/></h2>
-            <div style={{fontSize:11,color:C.textMid,marginBottom:12,fontStyle:"italic"}}>Billet à 0€ (abonnement Max, Abo Forfait, Pass Rail…) — Montants fixes BAD</div>
-            <div style={{overflowX:"auto"}}>
-              <table className="bareme-table" style={{minWidth:320}}>
-                <thead>
-                  <tr style={{background:C.green,color:"white"}}>
-                    <th>Retard</th><th style={{textAlign:"center"}}>Standard</th><th style={{textAlign:"center"}}>OUIGO</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    ["30–179 min","5€ BAD","5€ BAD (6 mois, OUIGO only)"],
-                    ["180–239 min","10€ BAD","↑"],
-                    ["≥ 240 min","20€ BAD","↑"],
-                  ].map(([delay,ma,ml],i)=>(
-                    <tr key={delay} style={{background:i%2===0?"white":C.surface2}}>
-                      <td style={{padding:"9px 12px",fontWeight:700}}>{delay}</td>
-                      <td style={{padding:"9px 12px",textAlign:"center",fontWeight:700,color:C.red}}>{ma}</td>
-                      <td style={{padding:"9px 12px",textAlign:"center",fontWeight:600,color:C.green,fontSize:11}}>{ml}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="card" style={{padding:0,overflow:"hidden",borderTop:`3px solid ${C.green}`}}>
+            <AccHeader id="max" icon={Icon.ticket} label="G30 — Abonnés Max & Forfaits (0€)" color={C.green} badge="Montants fixes BAD"/>
+            {openBareme.has("max")&&(
+              <div className="acc-body" style={{padding:"14px 18px"}}>
+                <div style={{fontSize:11,color:C.textMid,marginBottom:10,fontStyle:"italic"}}>Billet à 0€ — abonnement Max, Abo Forfait, Pass Rail…</div>
+                <div style={{overflowX:"auto"}}>
+                  <table className="bareme-table" style={{minWidth:320}}>
+                    <thead>
+                      <tr style={{background:C.green,color:"white"}}>
+                        <th>Retard</th><th style={{textAlign:"center"}}>Standard</th><th style={{textAlign:"center"}}>OUIGO</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        ["30–179 min","5€ BAD","5€ BAD (6 mois, OUIGO only)"],
+                        ["180–239 min","10€ BAD","↑"],
+                        ["≥ 240 min","20€ BAD","↑"],
+                      ].map(([delay,ma,ml],i)=>(
+                        <tr key={delay} style={{background:i%2===0?"white":C.surface2}}>
+                          <td style={{padding:"9px 12px",fontWeight:700}}>{delay}</td>
+                          <td style={{padding:"9px 12px",textAlign:"center",fontWeight:700,color:C.red}}>{ma}</td>
+                          <td style={{padding:"9px 12px",textAlign:"center",fontWeight:600,color:C.green,fontSize:11}}>{ml}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Billet Prime */}
-          <div className="card" style={{borderTop:"3px solid #1A3A8F"}}>
-            <h2 className="section-title" style={{color:"#1A3A8F",marginBottom:4}}><IconTitle icon={Icon.ticket} label="G30 — Billet Prime · File FID AV (LT 2397)" color="#1A3A8F"/></h2>
-            <div style={{fontSize:11,color:C.textMid,marginBottom:12,fontStyle:"italic"}}>File VOYAGE SENIOR OSCAR / GVLC — Applicable uniquement sur TGV INOUI</div>
-            <div style={{overflowX:"auto"}}>
-              <table className="bareme-table" style={{minWidth:420}}>
-                <thead>
-                  <tr style={{background:"#1A3A8F",color:"white"}}>
-                    <th>Retard</th>
-                    <th style={{textAlign:"center"}}>Titulaire<br/><span style={{fontSize:10,fontWeight:400}}>Billet Prime personnel</span></th>
-                    <th style={{textAlign:"center",background:"#3D1A6E"}}>FID + Tiers<br/><span style={{fontSize:10,fontWeight:400}}>Points + BAD tiers</span></th>
-                    <th style={{textAlign:"center",background:"#5A2080"}}>GVT + Tiers<br/><span style={{fontSize:10,fontWeight:400}}>BAD GVT + BAD tiers</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    ["30–59 min",  "1 000 pts","1 000 pts","+ 10€ BAD","10€ BAD","10€ BAD"],
-                    ["60–119 min", "2 000 pts","2 000 pts","+ 10€ BAD","10€ BAD","10€ BAD"],
-                    ["120–179 min","3 000 pts","3 000 pts","+ 20€ BAD","20€ BAD","20€ BAD"],
-                    ["≥ 180 min",  "4 000 pts","4 000 pts","+ 20€ BAD","20€ BAD","20€ BAD"],
-                  ].map(([delay,pts,fidPts,fidBad,gvtBad1,gvtBad2],i)=>(
-                    <tr key={delay} style={{background:i%2===0?"#EBF0FF":"white"}}>
-                      <td style={{padding:"9px 12px",fontWeight:700,whiteSpace:"nowrap"}}>{delay}</td>
-                      <td style={{padding:"9px 12px",textAlign:"center"}}>
-                        <span style={{fontWeight:800,color:"#1A3A8F",fontSize:13}}>{pts}</span>
-                      </td>
-                      <td style={{padding:"9px 12px",textAlign:"center"}}>
-                        <span style={{fontWeight:700,color:"#1A3A8F",fontSize:12}}>{fidPts}</span>
-                        <span style={{fontWeight:700,color:C.purple,fontSize:12}}> {fidBad}</span>
-                      </td>
-                      <td style={{padding:"9px 12px",textAlign:"center"}}>
-                        <span style={{fontWeight:700,color:"#7B3FA0",fontSize:12}}>{gvtBad1}</span>
-                        <span style={{fontWeight:500,color:C.textMuted,fontSize:11}}> + </span>
-                        <span style={{fontWeight:700,color:C.purple,fontSize:12}}>{gvtBad2}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="card" style={{padding:0,overflow:"hidden",borderTop:"3px solid #1A3A8F"}}>
+            <AccHeader id="prime" icon={Icon.ticket} label="G30 — Billet Prime · File FID AV (LT 2397)" color="#1A3A8F" badge="TGV INOUI uniquement"/>
+            {openBareme.has("prime")&&(
+              <div className="acc-body" style={{padding:"14px 18px"}}>
+                <div style={{fontSize:11,color:C.textMid,marginBottom:10,fontStyle:"italic"}}>File VOYAGE SENIOR OSCAR / GVLC</div>
+                <div style={{overflowX:"auto"}}>
+                  <table className="bareme-table" style={{minWidth:420}}>
+                    <thead>
+                      <tr style={{background:"#1A3A8F",color:"white"}}>
+                        <th>Retard</th>
+                        <th style={{textAlign:"center"}}>Titulaire<br/><span style={{fontSize:10,fontWeight:400}}>Billet Prime personnel</span></th>
+                        <th style={{textAlign:"center",background:"#3D1A6E"}}>FID + Tiers<br/><span style={{fontSize:10,fontWeight:400}}>Points + BAD tiers</span></th>
+                        <th style={{textAlign:"center",background:"#5A2080"}}>GVT + Tiers<br/><span style={{fontSize:10,fontWeight:400}}>BAD GVT + BAD tiers</span></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        ["30–59 min",  "1 000 pts","1 000 pts","+ 10€ BAD","10€ BAD","10€ BAD"],
+                        ["60–119 min", "2 000 pts","2 000 pts","+ 10€ BAD","10€ BAD","10€ BAD"],
+                        ["120–179 min","3 000 pts","3 000 pts","+ 20€ BAD","20€ BAD","20€ BAD"],
+                        ["≥ 180 min",  "4 000 pts","4 000 pts","+ 20€ BAD","20€ BAD","20€ BAD"],
+                      ].map(([delay,pts,fidPts,fidBad,gvtBad1,gvtBad2],i)=>(
+                        <tr key={delay} style={{background:i%2===0?"#EBF0FF":"white"}}>
+                          <td style={{padding:"9px 12px",fontWeight:700,whiteSpace:"nowrap"}}>{delay}</td>
+                          <td style={{padding:"9px 12px",textAlign:"center"}}>
+                            <span style={{fontWeight:800,color:"#1A3A8F",fontSize:13}}>{pts}</span>
+                          </td>
+                          <td style={{padding:"9px 12px",textAlign:"center"}}>
+                            <span style={{fontWeight:700,color:"#1A3A8F",fontSize:12}}>{fidPts}</span>
+                            <span style={{fontWeight:700,color:C.purple,fontSize:12}}> {fidBad}</span>
+                          </td>
+                          <td style={{padding:"9px 12px",textAlign:"center"}}>
+                            <span style={{fontWeight:700,color:"#7B3FA0",fontSize:12}}>{gvtBad1}</span>
+                            <span style={{fontWeight:500,color:C.textMuted,fontSize:11}}> + </span>
+                            <span style={{fontWeight:700,color:C.purple,fontSize:12}}>{gvtBad2}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Taxi nuit */}
-          <div className="card" style={{background:"#0D1B3E",border:"1px solid #2A2A5E"}}>
-            <h2 className="section-title" style={{color:"#A0C4FF",marginBottom:12}}><IconTitle icon={Icon.night} label="Dédommagement taxi — Arrivées 23h–6h" color="#A0C4FF"/></h2>
-            <table className="bareme-table" style={{color:"white"}}>
-              <thead>
-                <tr style={{background:"rgba(255,255,255,0.1)"}}>
-                  <th style={{color:"#A0C4FF"}}>Profil</th>
-                  <th style={{color:"#A0C4FF"}}>Condition</th>
-                  <th style={{color:"#A0C4FF",textAlign:"center"}}>Plafond / course</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td style={{padding:"11px 12px",fontWeight:600}}>Standard</td>
-                  <td style={{padding:"11px 12px",color:"rgba(255,255,255,.55)"}}>≥ 60 min de retard</td>
-                  <td style={{padding:"11px 12px",textAlign:"center",fontWeight:900,fontSize:22,color:"#FFD700",letterSpacing:"-0.5px"}}>50 €</td>
-                </tr>
-                <tr style={{borderTop:"1px solid rgba(255,255,255,.08)"}}>
-                  <td style={{padding:"11px 12px",fontWeight:700,color:"#FFD700"}}>Optimum+</td>
-                  <td style={{padding:"11px 12px",color:"rgba(255,255,255,.55)"}}>≥ 15 min de retard</td>
-                  <td style={{padding:"11px 12px",textAlign:"center",fontWeight:900,fontSize:22,color:"#FFD700",letterSpacing:"-0.5px"}}>100 €</td>
-                </tr>
-              </tbody>
-            </table>
-            <div style={{marginTop:10,fontSize:11,color:"rgba(255,255,255,.35)",fontStyle:"italic"}}>Applicable quelle que soit la ville · Hors DigiPEC Taxi Grand Retard (50€)</div>
+          <div className="card" style={{padding:0,overflow:"hidden",background:"#0D1B3E",border:"1px solid #2A2A5E"}}>
+            <AccHeader id="taxi" icon={Icon.night} label="Taxi nuit — Arrivées 23h–6h" color="#A0C4FF" badge="50€ / 100€ Optimum+"/>
+            {openBareme.has("taxi")&&(
+              <div className="acc-body" style={{padding:"14px 18px"}}>
+                <table className="bareme-table" style={{color:"white"}}>
+                  <thead>
+                    <tr style={{background:"rgba(255,255,255,0.1)"}}>
+                      <th style={{color:"#A0C4FF"}}>Profil</th>
+                      <th style={{color:"#A0C4FF"}}>Condition</th>
+                      <th style={{color:"#A0C4FF",textAlign:"center"}}>Plafond / course</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style={{padding:"11px 12px",fontWeight:600}}>Standard</td>
+                      <td style={{padding:"11px 12px",color:"rgba(255,255,255,.55)"}}>≥ 60 min de retard</td>
+                      <td style={{padding:"11px 12px",textAlign:"center",fontWeight:900,fontSize:22,color:"#FFD700",letterSpacing:"-0.5px"}}>50 €</td>
+                    </tr>
+                    <tr style={{borderTop:"1px solid rgba(255,255,255,.08)"}}>
+                      <td style={{padding:"11px 12px",fontWeight:700,color:"#FFD700"}}>Optimum+</td>
+                      <td style={{padding:"11px 12px",color:"rgba(255,255,255,.55)"}}>≥ 15 min de retard</td>
+                      <td style={{padding:"11px 12px",textAlign:"center",fontWeight:900,fontSize:22,color:"#FFD700",letterSpacing:"-0.5px"}}>100 €</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div style={{marginTop:10,fontSize:11,color:"rgba(255,255,255,.35)",fontStyle:"italic"}}>Applicable quelle que soit la ville · Hors DigiPEC Taxi Grand Retard (50€)</div>
+              </div>
+            )}
           </div>
 
           {/* Éligibilité */}
-          <div className="two-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
-            <div className="card" style={{marginBottom:0}}>
-              <div style={{fontWeight:700,fontSize:12.5,color:C.green,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>{Icon.check} Éligibles BD30</div>
-              {CARRIERS.filter(c=>c.group==="eligible").map(c=>(
-                <div key={c.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",fontSize:12,color:C.text,borderBottom:`1px solid ${C.border}`}}>
-                  <div style={{width:8,height:8,borderRadius:"50%",background:c.color,flexShrink:0}}/>{c.label}
+          <div className="card" style={{padding:0,overflow:"hidden"}}>
+            <AccHeader id="eligibilite" icon={Icon.check} label="Périmètre BD30 — Transporteurs"/>
+            {openBareme.has("eligibilite")&&(
+              <div className="acc-body" style={{padding:"14px 18px"}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:12,color:C.green,marginBottom:8,display:"flex",alignItems:"center",gap:5}}>{Icon.check} Éligibles</div>
+                    {CARRIERS.filter(c=>c.group==="eligible").map(c=>(
+                      <div key={c.id} style={{display:"flex",alignItems:"center",gap:7,padding:"6px 0",fontSize:12,color:C.text,borderBottom:`1px solid ${C.border}`}}>
+                        <div style={{width:7,height:7,borderRadius:"50%",background:c.color,flexShrink:0}}/>{c.label}
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:12,color:C.orange,marginBottom:8,display:"flex",alignItems:"center",gap:5}}>{Icon.cross} Hors périmètre</div>
+                    {CARRIERS.filter(c=>c.group==="non_eligible").map(c=>(
+                      <div key={c.id} style={{padding:"6px 0",fontSize:12,color:c.id==="trsi"?C.orange:C.textMuted,borderBottom:`1px solid ${C.border}`,fontWeight:c.id==="trsi"?600:400}}>
+                        {c.label}{c.id==="trsi"?" — Billet Combiné":""}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
-            </div>
-            <div className="card" style={{marginBottom:0}}>
-              <div style={{fontWeight:700,fontSize:12.5,color:C.orange,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>{Icon.cross} Hors périmètre BD30</div>
-              {CARRIERS.filter(c=>c.group==="non_eligible").map(c=>(
-                <div key={c.id} style={{padding:"7px 0",fontSize:12,color:c.id==="trsi"?C.orange:C.textMuted,borderBottom:`1px solid ${C.border}`,fontWeight:c.id==="trsi"?600:400}}>
-                  {c.label}{c.id==="trsi"?" — Billet Combiné (trains 17466–17499)":""}
+                <div className="alert-danger" style={{marginTop:10,fontSize:11}}>
+                  <strong>TRSI</strong> : G30 sur segment TGV/INT uniquement. Si TGV retardé → geste co BAD + G30. Si TRSI retardé → RC00 sur TGV suivant.
                 </div>
-              ))}
-              <div className="alert-danger" style={{marginTop:10,fontSize:11}}>
-                <strong>TRSI</strong> : G30 sur segment TGV/INT uniquement. Si TGV retardé → geste co BAD + G30. Si TRSI retardé → RC00 sur TGV suivant.
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Frais annexes résumé */}
-          <div className="card">
-            <h2 className="section-title" style={{marginBottom:12}}><IconTitle icon={Icon.receipt} label="Barème frais annexes (Annexe 1)"/></h2>
-            <div style={{overflowX:"auto"}}>
-              <table className="bareme-table">
-                <thead>
-                  <tr style={{background:C.blue,color:"white"}}>
-                    {["Catégorie","Sous-type","Plafond"].map(h=><th key={h}>{h}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    ["Avitaillement","Restauration (repas complet, boissons alc. exclues)","15 € / voyageur"],
-                    ["Avitaillement","Collation sandwich / boisson","10 € / voyageur"],
-                    ["Acheminement","Standard (autocar, taxi, voiture)","30 € / voyageur"],
-                    ["Taxi nuit","Standard 23h–6h (≥ 60 min)","50 € / course"],
-                    ["Taxi nuit","Optimum+ 23h–6h (≥ 15 min)","100 € / course"],
-                    ["Hébergement","Province — Tous tarifs","110 € / passager"],
-                    ["Hébergement","Province — Optimum+","300 € / passager"],
-                    ["Hébergement","Grande ville — Tous tarifs","150 € / passager"],
-                    ["Hébergement","Grande ville — Optimum+","300 € / passager"],
-                    ["Hébergement","Avec n° DNV-DNIC","Coût réel (>350€ → pôle AV)"],
-                  ].map(([cat,sub,max],i)=>(
-                    <tr key={i} style={{background:i%2===0?"white":C.surface2}}>
-                      <td style={{fontWeight:600,color:C.text,fontSize:11.5}}>{cat}</td>
-                      <td style={{color:C.textMid,fontSize:11.5}}>{sub}</td>
-                      <td style={{fontWeight:700,color:C.red,whiteSpace:"nowrap"}}>{max}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="alert-warn" style={{marginTop:12}}>
-              ⚠️ Montant réel <strong>sans dépasser</strong> le barème · Factures acquittées obligatoires · <strong>Non remboursés :</strong> frais aériens, covoiturage, péage, essence · Avitaillement dès <strong>60 min</strong>
-            </div>
+          {/* Frais annexes */}
+          <div className="card" style={{padding:0,overflow:"hidden"}}>
+            <AccHeader id="frais" icon={Icon.receipt} label="Barème frais annexes (Annexe 1)"/>
+            {openBareme.has("frais")&&(
+              <div className="acc-body" style={{padding:"14px 18px"}}>
+                <div style={{overflowX:"auto"}}>
+                  <table className="bareme-table">
+                    <thead>
+                      <tr style={{background:C.blue,color:"white"}}>
+                        {["Catégorie","Sous-type","Plafond"].map(h=><th key={h}>{h}</th>)}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        ["Avitaillement","Restauration (repas complet, boissons alc. exclues)","15 € / voyageur"],
+                        ["Avitaillement","Collation sandwich / boisson","10 € / voyageur"],
+                        ["Acheminement","Standard (autocar, taxi, voiture)","30 € / voyageur"],
+                        ["Taxi nuit","Standard 23h–6h (≥ 60 min)","50 € / course"],
+                        ["Taxi nuit","Optimum+ 23h–6h (≥ 15 min)","100 € / course"],
+                        ["Hébergement","Province — Tous tarifs","110 € / passager"],
+                        ["Hébergement","Province — Optimum+","300 € / passager"],
+                        ["Hébergement","Grande ville — Tous tarifs","150 € / passager"],
+                        ["Hébergement","Grande ville — Optimum+","300 € / passager"],
+                        ["Hébergement","Avec n° DNV-DNIC","Coût réel (>350€ → pôle AV)"],
+                      ].map(([cat,sub,max],i)=>(
+                        <tr key={i} style={{background:i%2===0?"white":C.surface2}}>
+                          <td style={{fontWeight:600,color:C.text,fontSize:11.5}}>{cat}</td>
+                          <td style={{color:C.textMid,fontSize:11.5}}>{sub}</td>
+                          <td style={{fontWeight:700,color:C.red,whiteSpace:"nowrap"}}>{max}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="alert-warn" style={{marginTop:12}}>
+                  ⚠️ Montant réel <strong>sans dépasser</strong> le barème · Factures acquittées obligatoires · <strong>Non remboursés :</strong> frais aériens, covoiturage, péage, essence · Avitaillement dès <strong>60 min</strong>
+                </div>
+              </div>
+            )}
           </div>
 
           </div>
