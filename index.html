@@ -146,10 +146,10 @@ const emptySegment=()=>({id:uid(),carrier:"tgv_dom",tarif:"standard",price:""});
 const emptyFrais=()=>({id:uid(),type:"restauration",qty:1,montant:""});
 
 const TABS=[
-  {id:"retard", label:"Retard & Compensation",     icon:"🚆"},
-  {id:"frais",  label:"Frais Annexes",              icon:"🧾"},
-  {id:"dates",  label:"Rétractation & Résiliation", icon:"📅"},
-  {id:"bareme", label:"Barèmes & Règles",           icon:"📊"},
+  {id:"retard", label:"Retard & Compensation",     icon:"▶"},
+  {id:"frais",  label:"Frais Annexes",              icon:"≡"},
+  {id:"dates",  label:"Rétractation & Résiliation", icon:"◷"},
+  {id:"bareme", label:"Barèmes & Règles",           icon:"≈"},
 ];
 
 // ─── Abonnements Max ────────────────────────────────────────────
@@ -620,11 +620,10 @@ const GLOBAL_CSS = `
 //  COMPOSANTS UI
 // ═══════════════════════════════════════════════════════════════════
 
-// ── Icônes SVG inline (remplacent les emojis dans les titres) ───────
+// ── Icônes SVG inline ────────────────────────────────────────────────
 const Icon={
-  train:  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="12" rx="3"/><path d="M7 19l-1 2M17 19l1 2M12 7V4M8 7V4M16 7V4"/><circle cx="7" cy="14" r="1" fill="currentColor"/><circle cx="17" cy="14" r="1" fill="currentColor"/></svg>,
+  train:  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="12" rx="3"/><path d="M7 19l-1 2M17 19l1 2"/><circle cx="7" cy="14" r="1" fill="currentColor"/><circle cx="17" cy="14" r="1" fill="currentColor"/></svg>,
   clock:  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>,
-  euro:   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5.5A7 7 0 1 0 15 18.5"/><path d="M5 10h8M5 14h8"/></svg>,
   star:   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
   chart:  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
   ticket: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a1 1 0 0 1 1-1h18a1 1 0 0 1 1 1v1.5a1.5 1.5 0 0 0 0 3V15a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-1.5a1.5 1.5 0 0 0 0-3V9z"/></svg>,
@@ -633,21 +632,19 @@ const Icon={
   filter: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
   cal:    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
   night:  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>,
-  hotel:  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
   check:  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
   cross:  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
 };
-
 function IconTitle({icon,label,color}){
   return(
     <span style={{display:"inline-flex",alignItems:"center",gap:7,color:color||"inherit"}}>
-      <span style={{opacity:.8}}>{icon}</span>
+      <span style={{opacity:.8,display:"inline-flex",alignItems:"center"}}>{icon}</span>
       {label}
     </span>
   );
 }
 
-
+function Badge({color=C.red,bg,children}){
   const bgColor = bg || color+"1A";
   return(
     <span className="badge" style={{background:bgColor,color,border:`1px solid ${color}30`}}>
@@ -867,8 +864,8 @@ function App(){
   const[contratPro,setContratPro]=useState(false);
   const[jourOuvrableMode,setJourOuvrableMode]=useState(false);
   const[retractType,setRetractType]=useState("abo"); // "abo" | "carte"
-  const[datesSection,setDatesSection]=useState(null); // null | "retractation" | "resiliation"
-  const[baremeFilter,setBaremeFilter]=useState("all"); // transporteur filter
+  const[datesSection,setDatesSection]=useState(null);
+  const[baremeFilter,setBaremeFilter]=useState("all");
 
   const aboType=ABONNEMENTS_MAX.find(a=>a.id===aboTypeId)||ABONNEMENTS_MAX[2];
   const mensualiteEffective=
@@ -908,8 +905,7 @@ function App(){
 
       {/* ── HEADER COMPACT ──────────────────────────────────────── */}
       <header style={{
-        background:C.red,
-        padding:"0 16px",height:42,
+        background:C.red,padding:"0 16px",height:42,
         display:"flex",alignItems:"center",justifyContent:"space-between",
         boxShadow:"0 1px 4px rgba(0,0,0,.18)",flexShrink:0,
       }}>
@@ -1150,9 +1146,11 @@ function App(){
             })}
           </div>
 
-          {/* ── Zone Saisie retard ── */}
+          {/* ── Retard ── */}
           <div className="card">
-            <h2 className="section-title" style={{marginBottom:16}}><IconTitle icon={Icon.clock} label="Retard à la destination finale"/></h2>
+            <h2 className="section-title">
+              <IconTitle icon={Icon.clock} label="Retard à la destination finale"/>
+            </h2>
 
             {/* Heures */}
             <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:14,alignItems:"flex-end"}}>
@@ -1196,11 +1194,7 @@ function App(){
             {/* Boutons rapides — tranches barème */}
             <div style={{marginBottom:12}}>
               <div style={{fontSize:11,fontWeight:700,color:C.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:7}}>Tranches du barème</div>
-              <div style={{
-                display:"grid",
-                gridTemplateColumns:"repeat(3,1fr)",
-                gap:6,
-              }}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
                 {[
                   {label:"< 30 min",      sub:"Non éligible",    value:15,  color:C.textMuted, bg:C.surface2,    border:C.border},
                   {label:"30 – 59 min",   sub:"25% ou 5€ BAD",   value:30,  color:C.red,       bg:"#FDE8EE",     border:C.redMid},
@@ -1678,13 +1672,12 @@ function App(){
 
         {/* ══════════ TAB BARÈME ══════════ */}
         {tab==="bareme"&&(()=>{
-          // Données complètes du barème standard par transporteur
           const BAREME_COLS=[
-            {id:"tgv_dom",   label:"TGV INOUI / Intercités", color:C.red},
-            {id:"tgv_int",   label:"TGV intl. (filiale)",    color:"#C8005A"},
-            {id:"ouigo",     label:"OUIGO",                  color:"#E8005D"},
-            {id:"ter",       label:"TER",                    color:"#2E7D5E"},
-            {id:"ter_krono", label:"TER KRONO+",             color:"#1A5C48"},
+            {id:"tgv_dom",  label:"TGV INOUI / Intercités", color:C.red},
+            {id:"tgv_int",  label:"TGV intl. (filiale)",    color:"#C8005A"},
+            {id:"ouigo",    label:"OUIGO",                  color:"#E8005D"},
+            {id:"ter",      label:"TER",                    color:"#2E7D5E"},
+            {id:"ter_krono",label:"TER KRONO+",             color:"#1A5C48"},
           ];
           const BAREME_ROWS=[
             {label:"30–59 min",  min:30,  max:59,
@@ -1698,18 +1691,19 @@ function App(){
             {label:"≥ 240 min",  min:240, max:Infinity,
               vals:{tgv_dom:"75%",tgv_int:"50%",ouigo:"100%",ter:"50%",ter_krono:"75%"}},
           ];
-          const visibleCols=baremeFilter==="all"?BAREME_COLS:BAREME_COLS.filter(c=>c.id===baremeFilter);
+          const visCols=baremeFilter==="all"?BAREME_COLS:BAREME_COLS.filter(c=>c.id===baremeFilter);
           return(
           <div id="panel-bareme" role="tabpanel" aria-label="Barèmes et règles">
 
-          {/* ── Tableau interactif filtrable ── */}
+          {/* ── Tableau filtrable ── */}
           <div className="card">
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexWrap:"wrap",gap:10}}>
               <h2 className="section-title" style={{margin:0}}><IconTitle icon={Icon.chart} label="G30 — Barème standard"/></h2>
-              {/* Filtre transporteur */}
-              <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                <span style={{fontSize:11,color:C.textMuted,display:"flex",alignItems:"center",gap:4,fontWeight:600}}>{Icon.filter} Filtrer :</span>
-                {[{id:"all",label:"Tous"},...BAREME_COLS].map(c=>(
+              <div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
+                <span style={{fontSize:11,color:C.textMuted,fontWeight:600,display:"flex",alignItems:"center",gap:4}}>
+                  {Icon.filter} Filtrer :
+                </span>
+                {[{id:"all",label:"Tous",color:C.red},...BAREME_COLS].map(c=>(
                   <button key={c.id} onClick={()=>setBaremeFilter(c.id)} style={{
                     padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:baremeFilter===c.id?700:500,
                     border:`1.5px solid ${baremeFilter===c.id?(c.color||C.red):C.border}`,
@@ -1721,12 +1715,12 @@ function App(){
               </div>
             </div>
             <div style={{overflowX:"auto"}}>
-              <table className="bareme-table" style={{minWidth:baremeFilter==="all"?520:260}}>
+              <table className="bareme-table" style={{minWidth:baremeFilter==="all"?500:220}}>
                 <thead>
-                  <tr style={{background:C.red,color:"white"}}>
-                    <th style={{padding:"9px 12px",textAlign:"left",whiteSpace:"nowrap"}}>Retard</th>
-                    {visibleCols.map(c=>(
-                      <th key={c.id} style={{padding:"9px 12px",textAlign:"center",whiteSpace:"nowrap",background:c.color||C.red}}>{c.label}</th>
+                  <tr>
+                    <th style={{background:C.red,color:"white",padding:"9px 12px",textAlign:"left",whiteSpace:"nowrap"}}>Retard</th>
+                    {visCols.map(c=>(
+                      <th key={c.id} style={{background:c.color,color:"white",padding:"9px 12px",textAlign:"center",whiteSpace:"nowrap"}}>{c.label}</th>
                     ))}
                   </tr>
                 </thead>
@@ -1734,16 +1728,17 @@ function App(){
                   {BAREME_ROWS.map(({label,min,max,vals},i)=>{
                     const active=finalDelay>=min&&finalDelay<=max&&finalDelay>=30;
                     return(
-                      <tr key={label} style={{background:active?"#FFF0D0":i%2===0?"white":C.surface2,fontWeight:active?700:400,transition:"background .2s"}}>
+                      <tr key={label} style={{background:active?"#FFF0D0":i%2===0?"white":C.surface2,transition:"background .2s"}}>
                         <td style={{padding:"9px 12px",fontWeight:700,color:active?C.amber:C.text,whiteSpace:"nowrap"}}>
                           {active&&<span style={{marginRight:5,fontSize:11,background:C.amber,color:"white",borderRadius:4,padding:"1px 5px"}}>→</span>}
                           {label}
                         </td>
-                        {visibleCols.map(c=>{
+                        {visCols.map(c=>{
                           const v=vals[c.id];
                           return(
-                            <td key={c.id} style={{padding:"9px 12px",textAlign:"center",fontWeight:active?700:600,
-                              color:v==="0%"?C.textMuted:active?C.amber:c.color||C.red,fontSize:13}}>
+                            <td key={c.id} style={{padding:"9px 12px",textAlign:"center",
+                              fontWeight:active?700:600,fontSize:13,
+                              color:v==="0%"?C.textMuted:active?C.amber:c.color}}>
                               {v}
                             </td>
                           );
@@ -1754,7 +1749,7 @@ function App(){
                 </tbody>
               </table>
             </div>
-            <div style={{marginTop:10,display:"flex",gap:14,flexWrap:"wrap",fontSize:11,color:C.textMuted,padding:"8px 0"}}>
+            <div style={{marginTop:10,fontSize:11,color:C.textMuted,display:"flex",gap:12,flexWrap:"wrap",padding:"6px 0"}}>
               <span>⚑ BAD seul = 30–59 min (TGV INOUI & Intercités)</span>
               <span>· OUIGO 0% pour 30–59 min</span>
               <span>· Seuil minimum : <strong>4€</strong></span>
@@ -1791,7 +1786,7 @@ function App(){
           </div>
 
           {/* Billet Prime */}
-          <div className="card" style={{borderTop:`3px solid #1A3A8F`}}>
+          <div className="card" style={{borderTop:"3px solid #1A3A8F"}}>
             <h2 className="section-title" style={{color:"#1A3A8F",marginBottom:4}}><IconTitle icon={Icon.ticket} label="G30 — Billet Prime · File FID AV (LT 2397)" color="#1A3A8F"/></h2>
             <div style={{fontSize:11,color:C.textMid,marginBottom:12,fontStyle:"italic"}}>File VOYAGE SENIOR OSCAR / GVLC — Applicable uniquement sur TGV INOUI</div>
             <div style={{overflowX:"auto"}}>
@@ -1929,8 +1924,8 @@ function App(){
           {/* ── Sélecteur de section ── */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
             {[
-              {id:"retractation", icon:"🔄", label:"Droit de rétractation", sub:"Achat internet · 14 jours", color:C.purple, bg:C.purpleLight, border:"#D8B4FF"},
-              {id:"resiliation",  icon:"📋", label:"Résiliation abonnement Max", sub:"Max Jeune · Senior · Actif · Actif+", color:"#1A5C38", bg:"#D4F0E4", border:"#60C898"},
+              {id:"retractation", icon:"↩", label:"Droit de rétractation", sub:"Achat internet · 14 jours", color:C.purple, bg:C.purpleLight, border:"#D8B4FF"},
+              {id:"resiliation",  icon:"✕", label:"Résiliation abonnement Max", sub:"Max Jeune · Senior · Actif · Actif+", color:"#1A5C38", bg:"#D4F0E4", border:"#60C898"},
             ].map(opt=>{
               const active=datesSection===opt.id;
               return(
