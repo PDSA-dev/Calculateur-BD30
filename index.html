@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="description" content="Calculateur d'indemnisation retard ferroviaire SNCF — BD30, G30, Frais Annexes, Rétractation et Résiliation abonnements Max. À usage interne SNCF Voyageurs."/>
   <title>Calculateur BD30/G30 — SNCF Voyageurs</title>
-  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
   <div id="root"></div>
@@ -982,7 +982,7 @@ function App(){
       <main style={{maxWidth:800,margin:"0 auto",padding:"16px 14px 80px"}}>
 
         {/* ══════════ TAB RETARD ══════════ */}
-        {tab==="retard"&&(<React.Fragment><div id="panel-retard" role="tabpanel" aria-label="Retard et compensation">
+        {tab==="retard"&&(<div id="panel-retard" role="tabpanel" aria-label="Retard et compensation">
 
           {/* Bandeau mode */}
           <div style={{
@@ -1523,10 +1523,10 @@ function App(){
               </div>
             </div>
           )}
-        </div></React.Fragment>)}
+        </div>)}
 
         {/* ══════════ TAB FRAIS ══════════ */}
-        {tab==="frais"&&(<React.Fragment><div id="panel-frais" role="tabpanel" aria-label="Frais annexes">
+        {tab==="frais"&&(<div id="panel-frais" role="tabpanel" aria-label="Frais annexes">
 
           {/* Info banner */}
           <div style={{background:"white",borderRadius:16,border:`1.5px solid ${C.blue}`,overflow:"hidden",marginBottom:12,boxShadow:"0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.06)"}}>
@@ -1658,10 +1658,10 @@ function App(){
               </div>
             </div>
           )}
-        </div></React.Fragment>)}
+        </div>)}
 
         {/* ══════════ TAB BARÈME ══════════ */}
-        {tab==="bareme"&&(<React.Fragment><div id="panel-bareme" role="tabpanel" aria-label="Barèmes et règles">
+        {tab==="bareme"&&(<div id="panel-bareme" role="tabpanel" aria-label="Barèmes et règles">
           <div className="card">
             <h2 className="section-title">📊 G30 — Barème standard</h2>
             <div style={{overflowX:"auto"}}>
@@ -1859,10 +1859,10 @@ function App(){
             </div>
           </div>
 
-        </div></React.Fragment>)}
+        </div>)}
 
         {/* ══════════ TAB DATES ══════════ */}
-        {tab==="dates"&&(<React.Fragment><div id="panel-dates" role="tabpanel" aria-label="Rétractation et résiliation">
+        {tab==="dates"&&(<div id="panel-dates" role="tabpanel" aria-label="Rétractation et résiliation">
 
           {/* ── Sélecteur de section ── */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
@@ -2522,7 +2522,7 @@ function App(){
           </div>
           </React.Fragment>)} {/* fin datesSection==="resiliation" */}
 
-        </div></React.Fragment>)}
+        </div>)}
 
       </main>
 
