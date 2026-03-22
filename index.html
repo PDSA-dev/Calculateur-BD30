@@ -3,13 +3,21 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Calculateur BD30/G30 — SNCF Voyageurs v1.49</title>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <meta name="description" content="Calculateur d'indemnisation retard ferroviaire SNCF — BD30, G30, Frais Annexes, Rétractation et Résiliation abonnements Max. À usage interne SNCF Voyageurs."/>
+  <title>Calculateur BD30/G30 — SNCF Voyageurs</title>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
   <div id="root"></div>
+  <noscript>
+    <div style="padding:2rem;font-family:sans-serif;color:#1C1410;max-width:500px;margin:4rem auto;text-align:center;border:1px solid #E2DAD4;border-radius:12px;background:#FDE8EE">
+      <strong style="font-size:1.1rem">JavaScript requis</strong><br/><br/>
+      Ce calculateur nécessite JavaScript pour fonctionner.<br/>
+      Veuillez l'activer dans votre navigateur ou contacter votre administrateur réseau.
+    </div>
+  </noscript>
   <script type="text/babel" data-presets="react">
 const { useState, useEffect } = React;
 
@@ -384,7 +392,7 @@ const C = {
   borderMid:   "#CFC6BE",
   text:        "#1C1410",
   textMid:     "#5C534C",
-  textMuted:   "#A09890",
+  textMuted:   "#6E6460",
 };
 
 // Injection CSS globale
@@ -456,6 +464,11 @@ const GLOBAL_CSS = `
     outline: none;
     position: relative;
   }
+  .tab-btn:focus-visible {
+    outline: 2.5px solid ${C.red};
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
   .tab-btn.active {
     font-weight: 700;
     border-bottom-color: var(--tab-color, ${C.red});
@@ -480,6 +493,10 @@ const GLOBAL_CSS = `
   .calc-input:focus {
     border-color: ${C.red};
     box-shadow: 0 0 0 3px rgba(155,0,64,.1);
+  }
+  .calc-input:focus-visible {
+    outline: 2.5px solid ${C.red};
+    outline-offset: 1px;
   }
 
   /* ── Cards ── */
@@ -513,6 +530,7 @@ const GLOBAL_CSS = `
     outline: none;
     font-family: inherit;
   }
+  .delay-btn:focus-visible { outline: 2.5px solid ${C.red}; outline-offset: 2px; }
   .delay-btn:hover { border-color: ${C.redMid}; color: ${C.red}; }
   .delay-btn.active { background: ${C.red}; color: white; border-color: ${C.red}; font-weight: 700; box-shadow: 0 2px 8px rgba(155,0,64,.25); }
 
@@ -585,6 +603,10 @@ const GLOBAL_CSS = `
   .bareme-table tbody tr:nth-child(even) { background: ${C.surface2}; }
 
   /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .three-col { grid-template-columns: 1fr 1fr !important; }
+    .tab-btn { padding: 12px 12px 10px; font-size: 11.5px; }
+  }
   @media (max-width: 640px) {
     .two-col { grid-template-columns: 1fr !important; }
     .seg-card { padding: 14px !important; }
@@ -641,11 +663,11 @@ function TimePicker({value,onChange,highlight}){
       boxShadow:isSet?"0 1px 4px rgba(0,0,0,.05)":"none",
       transition:"border-color .2s",
     }}>
-      <select value={hh} onChange={e=>onChange(`${e.target.value}:${mm}`)} style={selStyle}>
+      <select aria-label="Heures" value={hh} onChange={e=>onChange(`${e.target.value}:${mm}`)} style={selStyle}>
         {_hours.map(h=><option key={h} value={h}>{h}</option>)}
       </select>
       <span style={{fontSize:24,fontWeight:800,color:textColor,userSelect:"none",flexShrink:0,lineHeight:1,marginBottom:1}}>:</span>
-      <select value={mm} onChange={e=>onChange(`${hh}:${e.target.value}`)} style={selStyle}>
+      <select aria-label="Minutes" value={mm} onChange={e=>onChange(`${hh}:${e.target.value}`)} style={selStyle}>
         {_mins.map(m=><option key={m} value={m}>{m}</option>)}
       </select>
       {isSet&&(
@@ -888,7 +910,7 @@ function App(){
           {/* Version */}
           <div style={{flexShrink:0,textAlign:"right"}}>
             <div style={{color:"rgba(255,255,255,.25)",fontSize:11,letterSpacing:.2,lineHeight:1.6}}>
-              <strong style={{color:"rgba(255,255,255,.4)"}}>v1.49</strong> · by PDSA
+              <strong style={{color:"rgba(255,255,255,.4)"}}>v2.0</strong> · by PDSA
               <span style={{display:"block"}}>En vigueur 20/01/2026</span>
             </div>
           </div>
@@ -909,8 +931,11 @@ function App(){
             <React.Fragment key={t.id}>
               <button className={`tab-btn${active?" active":""}`}
                 style={{"--tab-color":col}}
+                role="tab"
+                aria-selected={active}
+                aria-controls={`panel-${t.id}`}
                 onClick={()=>setTab(t.id)}>
-                <span style={{fontSize:13,opacity:active?1:.55}}>{t.icon}</span>
+                <span style={{fontSize:13,opacity:active?1:.55}} aria-hidden="true">{t.icon}</span>
                 <span>{t.label}</span>
               </button>
               {/* Badge G30/BD30 — juste après l'onglet Retard */}
@@ -932,8 +957,11 @@ function App(){
         {(()=>{const t=TABS.find(x=>x.id==="bareme");const active=tab==="bareme";return(
           <button className={`tab-btn${active?" active":""}`}
             style={{"--tab-color":tabColors.bareme}}
+            role="tab"
+            aria-selected={active}
+            aria-controls="panel-bareme"
             onClick={()=>setTab("bareme")}>
-            <span style={{fontSize:13,opacity:active?1:.55}}>{t.icon}</span>
+            <span style={{fontSize:13,opacity:active?1:.55}} aria-hidden="true">{t.icon}</span>
             <span>{t.label}</span>
           </button>
         );})()}
@@ -954,7 +982,7 @@ function App(){
       <main style={{maxWidth:800,margin:"0 auto",padding:"16px 14px 80px"}}>
 
         {/* ══════════ TAB RETARD ══════════ */}
-        {tab==="retard"&&(<React.Fragment>
+        {tab==="retard"&&(<React.Fragment><div id="panel-retard" role="tabpanel" aria-label="Retard et compensation">
 
           {/* Bandeau mode */}
           <div style={{
@@ -1032,10 +1060,10 @@ function App(){
                     <div>
                       <label className="field-label">Transporteur</label>
                       {isG30
-                        ?<select value={seg.carrier} onChange={e=>updateSegment(seg.id,"carrier",e.target.value)} style={{...sel}}>
+                        ?<select aria-label="Transporteur" value={seg.carrier} onChange={e=>updateSegment(seg.id,"carrier",e.target.value)} style={{...sel}}>
                           {availableCarriers.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}
                         </select>
-                        :<select value={seg.carrier} onChange={e=>updateSegment(seg.id,"carrier",e.target.value)} style={{...sel,borderColor:isNE?"#F0C090":C.border,background:isNE?"#FFF3E0":"white"}}>
+                        :<select aria-label="Transporteur" value={seg.carrier} onChange={e=>updateSegment(seg.id,"carrier",e.target.value)} style={{...sel,borderColor:isNE?"#F0C090":C.border,background:isNE?"#FFF3E0":"white"}}>
                           <optgroup label="✅ Éligibles BD30">{CARRIERS.filter(c=>c.group==="eligible").map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</optgroup>
                           <optgroup label="❌ Hors périmètre BD30">{CARRIERS.filter(c=>c.group==="non_eligible").map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</optgroup>
                         </select>
@@ -1059,6 +1087,7 @@ function App(){
                         </span>}
                       </label>
                       <input type="number" min="0" step="0.01"
+                        aria-label="Prix du billet (€)"
                         placeholder={isMax?"—":"ex: 45.00"}
                         value={isMax?"0":seg.price}
                         onChange={e=>updateSegment(seg.id,"price",e.target.value)}
@@ -1199,6 +1228,8 @@ function App(){
                 <span style={{fontSize:20,fontWeight:800,color:timeDelay!==null?C.textMuted:C.red,fontVariantNumeric:"tabular-nums"}}>{fmtMin(sliderDelay)}</span>
               </div>
               <input type="range" min="0" max="360" step="1"
+                aria-label="Retard en minutes (0 à 360)"
+                aria-valuetext={`${sliderDelay} minutes`}
                 value={sliderDelay}
                 onChange={e=>{setSliderDelay(Number(e.target.value));setHeureTheo("");setHeureReel("");}}
                 style={{opacity:timeDelay!==null?0.35:1,marginBottom:6}}
@@ -1492,10 +1523,10 @@ function App(){
               </div>
             </div>
           )}
-        </React.Fragment>)}
+        </div></React.Fragment>)}
 
         {/* ══════════ TAB FRAIS ══════════ */}
-        {tab==="frais"&&(<React.Fragment>
+        {tab==="frais"&&(<React.Fragment><div id="panel-frais" role="tabpanel" aria-label="Frais annexes">
 
           {/* Info banner */}
           <div style={{background:"white",borderRadius:16,border:`1.5px solid ${C.blue}`,overflow:"hidden",marginBottom:12,boxShadow:"0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.06)"}}>
@@ -1545,7 +1576,7 @@ function App(){
                     <div style={{fontSize:22,lineHeight:1,paddingTop:4,flexShrink:0}}>{def.icon}</div>
                     <div style={{flex:1,minWidth:0}}>
                       <label className="field-label">Type de frais</label>
-                      <select value={f.type} onChange={e=>updateFrais(f.id,"type",e.target.value)} style={{...sel}}>
+                      <select aria-label="Type de frais" value={f.type} onChange={e=>updateFrais(f.id,"type",e.target.value)} style={{...sel}}>
                         <optgroup label="🍽️ Avitaillement">{FRAIS_TYPES.filter(t=>["restauration","collation"].includes(t.id)).map(t=><option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}</optgroup>
                         <optgroup label="🚌 Acheminement">{FRAIS_TYPES.filter(t=>["transport","taxi_nuit","taxi_optimum"].includes(t.id)).map(t=><option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}</optgroup>
                         <optgroup label="🏨 Hébergement — Tous tarifs">{FRAIS_TYPES.filter(t=>["hotel_province","hotel_grande"].includes(t.id)).map(t=><option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}</optgroup>
@@ -1562,7 +1593,7 @@ function App(){
                       <label className="field-label">{unitLabel}</label>
                       {isTaxiSpecial
                         ?<div style={{padding:"9px 10px",borderRadius:8,background:"#D8E4FF",border:`1.5px solid #B0C8F0`,fontSize:13,fontWeight:700,color:C.blue,textAlign:"center",fontVariantNumeric:"tabular-nums"}}>1</div>
-                        :<input type="number" min="1" value={f.qty} onChange={e=>updateFrais(f.id,"qty",e.target.value)} style={{...inp,fontWeight:700,textAlign:"center",fontVariantNumeric:"tabular-nums lining-nums",fontFamily:"'Inter','DM Sans',sans-serif",fontSize:15}}/>
+                        :<input type="number" min="1" aria-label={unitLabel} value={f.qty} onChange={e=>updateFrais(f.id,"qty",e.target.value)} style={{...inp,fontWeight:700,textAlign:"center",fontVariantNumeric:"tabular-nums lining-nums",fontFamily:"'Inter','DM Sans',sans-serif",fontSize:15}}/>
                       }
                       <div style={{fontSize:11,color:isTaxiSpecial?C.blue:C.red,marginTop:3,fontWeight:600,textAlign:"center"}}>
                         {isTaxiSpecial?"Forfait/course":`Plafond : ${def.max*qty} €`}
@@ -1571,6 +1602,7 @@ function App(){
                     <div style={{flex:1}}>
                       <label className="field-label">Montant réel (€)</label>
                       <input type="number" min="0" step="0.01" placeholder="0.00"
+                        aria-label="Montant réel en euros"
                         value={f.montant} onChange={e=>updateFrais(f.id,"montant",e.target.value)}
                         style={{...inp,fontVariantNumeric:"tabular-nums lining-nums",fontFamily:"'Inter','DM Sans',sans-serif",fontWeight:600,fontSize:15}}
                       />
@@ -1626,12 +1658,10 @@ function App(){
               </div>
             </div>
           )}
-        </React.Fragment>)}
+        </div></React.Fragment>)}
 
         {/* ══════════ TAB BARÈME ══════════ */}
-        {tab==="bareme"&&(<React.Fragment>
-
-          {/* Barème Standard */}
+        {tab==="bareme"&&(<React.Fragment><div id="panel-bareme" role="tabpanel" aria-label="Barèmes et règles">
           <div className="card">
             <h2 className="section-title">📊 G30 — Barème standard</h2>
             <div style={{overflowX:"auto"}}>
@@ -1829,10 +1859,10 @@ function App(){
             </div>
           </div>
 
-        </React.Fragment>)}
+        </div></React.Fragment>)}
 
         {/* ══════════ TAB DATES ══════════ */}
-        {tab==="dates"&&(<React.Fragment>
+        {tab==="dates"&&(<React.Fragment><div id="panel-dates" role="tabpanel" aria-label="Rétractation et résiliation">
 
           {/* ── Sélecteur de section ── */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
@@ -2119,7 +2149,7 @@ function App(){
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
               <div>
                 <label className="field-label">Type d'abonnement</label>
-                <select className="calc-input" style={{cursor:"pointer"}}
+                <select className="calc-input" aria-label="Type d'abonnement" style={{cursor:"pointer"}}
                   value={aboTypeId} onChange={e=>{setAboTypeId(e.target.value);setAboMensualiteVariable("");}}>
                   {ABONNEMENTS_MAX.filter(a=>a.id!=="carte_liberte").map(a=>(
                     <option key={a.id} value={a.id}>
@@ -2134,6 +2164,7 @@ function App(){
                 <div>
                   <label className="field-label">Mensualité (€)</label>
                   <input type="number" className="calc-input" placeholder="Ex: 109"
+                    aria-label="Mensualité en euros"
                     value={aboMensualiteCustom} onChange={e=>setAboMensualiteCustom(e.target.value)}/>
                 </div>
               )}
@@ -2143,6 +2174,7 @@ function App(){
                 <div>
                   <label className="field-label">Mensualité O/D (€) — pour calcul frais</label>
                   <input type="number" className="calc-input" placeholder="Tarif selon votre O/D"
+                    aria-label="Mensualité O/D en euros"
                     value={aboMensualiteVariable} onChange={e=>setAboMensualiteVariable(e.target.value)}/>
                   <div style={{fontSize:11.5,color:C.textMuted,marginTop:4}}>
                     Tarif variable selon l'origine/destination. Consultez votre espace abonné.
@@ -2490,13 +2522,13 @@ function App(){
           </div>
           </React.Fragment>)} {/* fin datesSection==="resiliation" */}
 
-        </React.Fragment>)}
+        </div></React.Fragment>)}
 
       </main>
 
       {/* ── BARRE RÉSULTAT FIXE ─────────────────────────────────── */}
       {tab==="retard"&&computed&&computed.eligible&&(
-        <div style={{
+        <div role="status" aria-live="polite" aria-atomic="true" style={{
           position:"fixed",bottom:0,left:0,right:0,zIndex:200,
           background:`linear-gradient(135deg,#0A5530,#0F6B3C)`,
           padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",
@@ -2512,7 +2544,7 @@ function App(){
         </div>
       )}
       {tab==="frais"&&fraisComputed&&fraisComputed.total>0&&(
-        <div style={{
+        <div role="status" aria-live="polite" aria-atomic="true" style={{
           position:"fixed",bottom:0,left:0,right:0,zIndex:200,
           background:`linear-gradient(135deg,#002B7A,${C.blue})`,
           padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",
@@ -2533,15 +2565,14 @@ function App(){
         color:C.textMuted,borderTop:`1px solid ${C.border}`,
         background:"white",letterSpacing:.2,
       }}>
-        Calculateur BD30 / G30 · <strong style={{color:C.red}}>version 1.49</strong> · by PDSA · Règlement PRR 2021 · En vigueur au 01/01/2025 · À titre indicatif uniquement
+        Calculateur BD30 / G30 · <strong style={{color:C.red}}>version 2.0</strong> · by PDSA · Règlement PRR 2021 · En vigueur au 01/01/2025 · À titre indicatif uniquement
       </footer>
 
     </div>
   );
 }
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<App/>);
+export default App;
 
   </script>
 </body>
