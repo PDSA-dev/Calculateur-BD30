@@ -1150,17 +1150,42 @@ function App(){
 
             <Divider label="OU saisir manuellement"/>
 
-            {/* Boutons rapides — en premier, plus visibles */}
+            {/* Boutons rapides — tranches barème */}
             <div style={{marginBottom:12}}>
-              <div style={{fontSize:11,fontWeight:700,color:C.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:7}}>Raccourcis retard</div>
-              <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                {[0,15,30,45,60,90,120,150,180,240,300].map(d=>(
-                  <button key={d}
-                    className={`delay-btn${(finalDelay===d&&timeDelay===null)?" active":""}`}
-                    onClick={()=>{setSliderDelay(d);setHeureTheo("");setHeureReel("");}}>
-                    {d===0?"0min":d<60?`${d}min`:d%60===0?`${d/60}h`:`${Math.floor(d/60)}h${d%60}`}
-                  </button>
-                ))}
+              <div style={{fontSize:11,fontWeight:700,color:C.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:7}}>Tranches du barème</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {[
+                  {label:"< 30 min",      sub:"Non éligible", value:15,  color:C.textMuted, bg:C.surface2,    border:C.border},
+                  {label:"30 – 59 min",   sub:"Tranche 1",    value:30,  color:C.red,       bg:"#FDE8EE",     border:C.redMid},
+                  {label:"60 – 119 min",  sub:"Tranche 2",    value:60,  color:C.red,       bg:"#FDE8EE",     border:C.redMid},
+                  {label:"120 – 179 min", sub:"Tranche 3",    value:120, color:C.red,       bg:"#FDE8EE",     border:C.redMid},
+                  {label:"180 – 239 min", sub:"Tranche 4",    value:180, color:"#7A0032",   bg:"#F5C0D0",     border:"#E080A0"},
+                  {label:"≥ 240 min",     sub:"Tranche 5",    value:240, color:"#7A0032",   bg:"#F5C0D0",     border:"#E080A0"},
+                ].map(({label,sub,value,color,bg,border})=>{
+                  const active=finalDelay>=value&&(
+                    value===15  ? finalDelay<30  :
+                    value===30  ? finalDelay>=30&&finalDelay<=59  :
+                    value===60  ? finalDelay>=60&&finalDelay<=119 :
+                    value===120 ? finalDelay>=120&&finalDelay<=179:
+                    value===180 ? finalDelay>=180&&finalDelay<=239:
+                    finalDelay>=240
+                  )&&timeDelay===null;
+                  return(
+                    <button key={value}
+                      onClick={()=>{setSliderDelay(value);setHeureTheo("");setHeureReel("");}}
+                      style={{
+                        padding:"7px 13px",borderRadius:10,cursor:"pointer",
+                        fontFamily:"inherit",textAlign:"left",
+                        border:`1.5px solid ${active?color:border}`,
+                        background:active?color:bg,
+                        boxShadow:active?`0 2px 8px ${color}40`:"none",
+                        transition:"all .15s",
+                      }}>
+                      <div style={{fontSize:12,fontWeight:700,color:active?"white":color,lineHeight:1.2}}>{label}</div>
+                      <div style={{fontSize:10,color:active?"rgba(255,255,255,.7)":C.textMuted,marginTop:2}}>{sub}</div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
