@@ -998,6 +998,11 @@ function App(){
   const[baremeFilter,setBaremeFilter]=useState("all");
   const[openBareme,setOpenBareme]=useState(new Set(["standard"]));
 
+  // ── Situation perturbée ────────────────────────────────────────
+  const[spAvis,setSpAvis]=useState(""); // "j2","j1h00","apresH00","inopinee"
+  const[spCos,setSpCos]=useState("");   // "oui","non","bypass"
+  const[spVoyage,setSpVoyage]=useState(""); // "suppression","retard60"
+
   const aboType=ABONNEMENTS_MAX.find(a=>a.id===aboTypeId)||ABONNEMENTS_MAX[2];
   const mensualiteEffective=
     aboTypeId==="custom"?(parseFloat(aboMensualiteCustom)||0):
@@ -1746,6 +1751,154 @@ function App(){
               </div>
             </div>
           </div>
+
+          {/* ── Situation perturbée — Délai client avisé ── */}
+          {(()=>{
+            // Calcul du verdict
+            const getVerdict=()=>{
+              if(!spVoyage||!spAvis) return null;
+              if(spAvis==="j2") return {
+                type:"refus",
+                title:"REFUS des frais supplémentaires",
+                text:"Le client a été avisé jusqu'à J−2 : l'échange devait être effectué sans frais. Aucune prise en charge des frais de rachat ou de surcoût.",
+                g30:true,
+                g30note:"La G30 reste applicable sur le retard global (y compris si le train de report est TER, car, bus)."
+              };
+              if(spAvis==="bypass") return {
+                type:"accord",
+                title:"ACCORD — G30 retard global",
+                text:"Le client a voyagé avec RC 00 ou a échangé sans frais (Bypass) : la G30 s'applique sur le retard global, même si le train de report était un TER.",
+                g30:true,
+                g30note:"Retard global = heure réelle d'arrivée à destination finale via le train de report."
+              };
+              if(spAvis==="j1h00"){
+                if(!spCos) return null;
+                if(spCos==="oui") return {
+                  type:"refus",
+                  title:"REFUS — COS a proposé une alternative",
+                  text:"Le COS a proposé une solution dans les 100 minutes : refus de prise en charge des frais. Le client devait accepter la solution proposée.",
+                  g30:false
+                };
+                return {
+                  type:"accord",
+                  title:"ACCORD — Pas de proposition COS dans les 100 min",
+                  text:"Le COS n'a pas proposé de solution alternative dans les 100 minutes après l'heure de départ théorique.",
+                  details:[
+                    "✅ Remboursement du montant du billet racheté",
+                    "✅ G30 sur le retard global (y compris si report en car, bus ou autre entité ferroviaire)"
+                  ],
+                  g30:true,
+                  g30note:"Retard global calculé à destination finale."
+                };
+              }
+              if(spAvis==="apresH00"||spAvis==="inopinee"){
+                if(!spCos) return null;
+                if(spCos==="oui") return {
+                  type:"refus",
+                  title:"REFUS — COS a proposé une alternative",
+                  text:"Le COS a proposé une solution dans les 100 minutes : refus de prise en charge des frais supplémentaires.",
+                  g30:false
+                };
+                return {
+                  type:"accord",
+                  title:"ACCORD — Pas de proposition COS dans les 100 min",
+                  text:"Suppression inopinée ou avisé après H00 — COS sans proposition dans les 100 minutes.",
+                  details:[
+                    "✅ Remboursement des frais d'échange ou du billet initial non utilisé",
+                    "✅ Remboursement du surcoût de rachat",
+                    "✅ G30 sur le retard global (y compris si report en car, bus ou autre entité ferroviaire)"
+                  ],
+                  g30:true,
+                  g30note:"Retard global calculé à destination finale."
+                };
+              }
+              return null;
+            };
+            const verdict=getVerdict();
+            const needCos=spAvis==="j1h00"||spAvis==="apresH00"||spAvis==="inopinee";
+            return(
+              <div className="card" style={{borderColor:C.blue,borderWidth:1.5}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+                  <span style={{fontSize:20}}>🚨</span>
+                  <h2 className="section-title" style={{margin:0,color:C.blue}}>Situation perturbée — Éligibilité des frais</h2>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+                  {/* Motif */}
+                  <div>
+                    <label className="field-label">Motif de la perturbation</label>
+                    <select className="calc-input" value={spVoyage} onChange={e=>{setSpVoyage(e.target.value);setSpAvis("");setSpCos("");}}>
+                      <option value="">— Sélectionner —</option>
+                      <option value="suppression">Suppression de train</option>
+                      <option value="retard60">Retard ≥ 60 min</option>
+                    </select>
+                  </div>
+                  {/* Délai avis */}
+                  {spVoyage&&(
+                    <div>
+                      <label className="field-label">Quand le client a-t-il été avisé ?</label>
+                      <select className="calc-input" value={spAvis} onChange={e=>{setSpAvis(e.target.value);setSpCos("");}}>
+                        <option value="">— Sélectionner —</option>
+                        <option value="j2">Jusqu'à J−2 (avisé bien avant)</option>
+                        <option value="j1h00">J−1 jusqu'à H00 (veille ou la nuit)</option>
+                        <option value="apresH00">Après H00 (matin du jour J, avant gare)</option>
+                        <option value="inopinee">Inopinée — découverte en gare le jour J</option>
+                        <option value="bypass">Voyage avec RC 00 ou échange sans frais (Bypass)</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+                {/* Question COS */}
+                {needCos&&spAvis&&(
+                  <div style={{marginBottom:12}}>
+                    <label className="field-label">Le COS a-t-il proposé une solution alternative dans les <strong>100 minutes</strong> ?</label>
+                    <div style={{display:"flex",gap:10,marginTop:6}}>
+                      {[["oui","✅ Oui, solution proposée"],["non","❌ Non, aucune proposition dans les 100 min"]].map(([v,l])=>(
+                        <button key={v} onClick={()=>setSpCos(v)} style={{
+                          flex:1,padding:"9px 14px",borderRadius:10,fontFamily:"inherit",fontSize:12,fontWeight:spCos===v?700:500,cursor:"pointer",
+                          border:`1.5px solid ${spCos===v?(v==="oui"?"#D00020":C.green):C.border}`,
+                          background:spCos===v?(v==="oui"?"#FFF0F0":C.greenLight):"white",
+                          color:spCos===v?(v==="oui"?"#C00030":C.green):C.textMid
+                        }}>{l}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Verdict */}
+                {verdict&&(
+                  <div style={{
+                    borderRadius:12,padding:"14px 16px",
+                    background:verdict.type==="accord"?C.greenLight:"#FFF0F0",
+                    border:`1.5px solid ${verdict.type==="accord"?"#60C090":"#F0A0A0"}`,
+                    marginTop:4
+                  }}>
+                    <div style={{fontWeight:800,fontSize:13,color:verdict.type==="accord"?C.green:"#B00020",marginBottom:8}}>
+                      {verdict.type==="accord"?"✅":"🚫"} {verdict.title}
+                    </div>
+                    <div style={{fontSize:12,color:verdict.type==="accord"?C.green:"#900018",lineHeight:1.7,marginBottom:verdict.details?8:0}}>
+                      {verdict.text}
+                    </div>
+                    {verdict.details&&(
+                      <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                        {verdict.details.map((d,i)=>(
+                          <div key={i} style={{fontSize:12,color:C.green,fontWeight:600}}>{d}</div>
+                        ))}
+                      </div>
+                    )}
+                    {verdict.g30&&(
+                      <div style={{marginTop:10,padding:"8px 12px",borderRadius:8,background:"rgba(0,0,0,.04)",fontSize:11,color:C.textMid}}>
+                        💡 <strong>G30 :</strong> {verdict.g30note}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {!spVoyage&&(
+                  <div className="alert-info" style={{marginTop:0}}>
+                    Sélectionnez le motif et le délai d'avis pour déterminer l'éligibilité aux frais annexes et à la G30.
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Calculateur frais */}
           <div className="card">
