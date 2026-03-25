@@ -999,9 +999,10 @@ function App(){
   const[openBareme,setOpenBareme]=useState(new Set(["standard"]));
 
   // ── Situation perturbée ────────────────────────────────────────
-  const[spAvis,setSpAvis]=useState(""); // "j2","j1h00","apresH00","inopinee"
-  const[spCos,setSpCos]=useState("");   // "oui","non","bypass"
+  const[spAvis,setSpAvis]=useState(""); // "j2","j1h00","apresH00","inopinee","bypass"
+  const[spCos,setSpCos]=useState("");   // "oui","non"
   const[spVoyage,setSpVoyage]=useState(""); // "suppression","retard60"
+  const[spRenoncement,setSpRenoncement]=useState(""); // "oui","non"
 
   const aboType=ABONNEMENTS_MAX.find(a=>a.id===aboTypeId)||ABONNEMENTS_MAX[2];
   const mensualiteEffective=
@@ -1021,6 +1022,7 @@ function App(){
     setDateAchat("");setDateActivation("");
     setDateDemande(new Date().toISOString().split("T")[0]);
     setAboTypeId("max_actif");setAboMensualiteCustom("");setAboMensualiteVariable("");setContratPro(false);setJourOuvrableMode(false);setRetractType("abo");setDatesSection(null);
+    setSpAvis("");setSpCos("");setSpVoyage("");setSpRenoncement("");
     setResetConfirm(false);
   };
 
@@ -1752,11 +1754,15 @@ function App(){
             </div>
           </div>
 
-          {/* ── Situation perturbée — Délai client avisé ── */}
+          {/* ── Situation perturbée — Éligibilité des frais ── */}
           {(()=>{
-            // Calcul du verdict
             const getVerdict=()=>{
-              if(!spVoyage||!spAvis) return null;
+              if(!spVoyage) return null;
+              // Renoncement au voyage
+              if(spRenoncement==="oui") return {type:"renoncement"};
+              if(!spRenoncement||spRenoncement==="") return null;
+              // Voyageur maintient le voyage — logique avis/COS
+              if(!spAvis) return null;
               if(spAvis==="j2") return {
                 type:"refus",
                 title:"REFUS des frais supplémentaires",
@@ -1816,25 +1822,73 @@ function App(){
             };
             const verdict=getVerdict();
             const needCos=spAvis==="j1h00"||spAvis==="apresH00"||spAvis==="inopinee";
+            const showAvisFlow=spRenoncement==="non";
             return(
               <div className="card" style={{borderColor:C.blue,borderWidth:1.5}}>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
                   <span style={{fontSize:20}}>🚨</span>
                   <h2 className="section-title" style={{margin:0,color:C.blue}}>Situation perturbée — Éligibilité des frais</h2>
                 </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
-                  {/* Motif */}
-                  <div>
-                    <label className="field-label">Motif de la perturbation</label>
-                    <select className="calc-input" value={spVoyage} onChange={e=>{setSpVoyage(e.target.value);setSpAvis("");setSpCos("");}}>
-                      <option value="">— Sélectionner —</option>
-                      <option value="suppression">Suppression de train</option>
-                      <option value="retard60">Retard ≥ 60 min</option>
-                    </select>
+
+                {/* Étape 1 — Motif */}
+                <div style={{marginBottom:12}}>
+                  <label className="field-label">Motif de la perturbation</label>
+                  <select className="calc-input" value={spVoyage} onChange={e=>{setSpVoyage(e.target.value);setSpAvis("");setSpCos("");setSpRenoncement("");}}>
+                    <option value="">— Sélectionner —</option>
+                    <option value="suppression">Suppression de train</option>
+                    <option value="retard60">Retard ≥ 60 min</option>
+                  </select>
+                </div>
+
+                {/* Étape 2 — Renoncement */}
+                {spVoyage&&(
+                  <div style={{marginBottom:12}}>
+                    <label className="field-label">Le client renonce-t-il au voyage ?</label>
+                    <div style={{display:"flex",gap:10,marginTop:6}}>
+                      {[["oui","✈️ Oui — renoncement"],["non","🚆 Non — voyage maintenu"]].map(([v,l])=>(
+                        <button key={v} onClick={()=>{setSpRenoncement(v);setSpAvis("");setSpCos("");}} style={{
+                          flex:1,padding:"9px 14px",borderRadius:10,fontFamily:"inherit",fontSize:12,
+                          fontWeight:spRenoncement===v?700:500,cursor:"pointer",
+                          border:`1.5px solid ${spRenoncement===v?(v==="oui"?"#7B3FA0":C.blue):C.border}`,
+                          background:spRenoncement===v?(v==="oui"?"#F5EEFF":"#EBF3FF"):"white",
+                          color:spRenoncement===v?(v==="oui"?"#7B3FA0":C.blue):C.textMid
+                        }}>{l}</button>
+                      ))}
+                    </div>
                   </div>
-                  {/* Délai avis */}
-                  {spVoyage&&(
-                    <div>
+                )}
+
+                {/* Renoncement — verdict remboursement intégral */}
+                {verdict&&verdict.type==="renoncement"&&(
+                  <div style={{borderRadius:12,padding:"14px 16px",background:"#F5EEFF",border:"1.5px solid #C89AE0",marginTop:4}}>
+                    <div style={{fontWeight:800,fontSize:13,color:"#7B3FA0",marginBottom:10}}>
+                      ✅ Renoncement au voyage — Remboursement intégral
+                    </div>
+                    <div style={{fontSize:12,color:"#5A2D80",lineHeight:1.7,marginBottom:10}}>
+                      Remboursement intégral du billet, y compris les billets <strong>NE / NR</strong>.
+                    </div>
+                    <div style={{padding:"10px 14px",borderRadius:10,background:"white",border:"1px solid #D4B0F0",marginBottom:0}}>
+                      <div style={{fontWeight:700,fontSize:11,color:"#7B3FA0",marginBottom:8,textTransform:"uppercase",letterSpacing:.5}}>
+                        🎫 Barème particulier — Billets Prime GVT / Exit (en BAD uniquement)
+                      </div>
+                      {[
+                        ["Prime Promo","40 €/trajet/voyageur"],
+                        ["Billet Prime 2nde","40 €/trajet/voyageur"],
+                        ["Billet Prime 1ère","50 €/trajet/voyageur"],
+                      ].map(([type,montant])=>(
+                        <div key={type} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:"1px solid #EDE0FF"}}>
+                          <span style={{fontSize:12,color:"#5A2D80",fontWeight:500}}>{type}</span>
+                          <span style={{fontSize:13,color:"#7B3FA0",fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{montant}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Voyage maintenu — délai avis + COS */}
+                {showAvisFlow&&(
+                  <>
+                    <div style={{marginBottom:12}}>
                       <label className="field-label">Quand le client a-t-il été avisé ?</label>
                       <select className="calc-input" value={spAvis} onChange={e=>{setSpAvis(e.target.value);setSpCos("");}}>
                         <option value="">— Sélectionner —</option>
@@ -1845,52 +1899,51 @@ function App(){
                         <option value="bypass">Voyage avec RC 00 ou échange sans frais (Bypass)</option>
                       </select>
                     </div>
-                  )}
-                </div>
-                {/* Question COS */}
-                {needCos&&spAvis&&(
-                  <div style={{marginBottom:12}}>
-                    <label className="field-label">Le COS a-t-il proposé une solution alternative dans les <strong>100 minutes</strong> ?</label>
-                    <div style={{display:"flex",gap:10,marginTop:6}}>
-                      {[["oui","✅ Oui, solution proposée"],["non","❌ Non, aucune proposition dans les 100 min"]].map(([v,l])=>(
-                        <button key={v} onClick={()=>setSpCos(v)} style={{
-                          flex:1,padding:"9px 14px",borderRadius:10,fontFamily:"inherit",fontSize:12,fontWeight:spCos===v?700:500,cursor:"pointer",
-                          border:`1.5px solid ${spCos===v?(v==="oui"?"#D00020":C.green):C.border}`,
-                          background:spCos===v?(v==="oui"?"#FFF0F0":C.greenLight):"white",
-                          color:spCos===v?(v==="oui"?"#C00030":C.green):C.textMid
-                        }}>{l}</button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {/* Verdict */}
-                {verdict&&(
-                  <div style={{
-                    borderRadius:12,padding:"14px 16px",
-                    background:verdict.type==="accord"?C.greenLight:"#FFF0F0",
-                    border:`1.5px solid ${verdict.type==="accord"?"#60C090":"#F0A0A0"}`,
-                    marginTop:4
-                  }}>
-                    <div style={{fontWeight:800,fontSize:13,color:verdict.type==="accord"?C.green:"#B00020",marginBottom:8}}>
-                      {verdict.type==="accord"?"✅":"🚫"} {verdict.title}
-                    </div>
-                    <div style={{fontSize:12,color:verdict.type==="accord"?C.green:"#900018",lineHeight:1.7,marginBottom:verdict.details?8:0}}>
-                      {verdict.text}
-                    </div>
-                    {verdict.details&&(
-                      <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                        {verdict.details.map((d,i)=>(
-                          <div key={i} style={{fontSize:12,color:C.green,fontWeight:600}}>{d}</div>
-                        ))}
+                    {needCos&&spAvis&&(
+                      <div style={{marginBottom:12}}>
+                        <label className="field-label">Le COS a-t-il proposé une solution alternative dans les <strong>100 minutes</strong> ?</label>
+                        <div style={{display:"flex",gap:10,marginTop:6}}>
+                          {[["oui","✅ Oui, solution proposée"],["non","❌ Non, aucune proposition dans les 100 min"]].map(([v,l])=>(
+                            <button key={v} onClick={()=>setSpCos(v)} style={{
+                              flex:1,padding:"9px 14px",borderRadius:10,fontFamily:"inherit",fontSize:12,fontWeight:spCos===v?700:500,cursor:"pointer",
+                              border:`1.5px solid ${spCos===v?(v==="oui"?"#D00020":C.green):C.border}`,
+                              background:spCos===v?(v==="oui"?"#FFF0F0":C.greenLight):"white",
+                              color:spCos===v?(v==="oui"?"#C00030":C.green):C.textMid
+                            }}>{l}</button>
+                          ))}
+                        </div>
                       </div>
                     )}
-                    {verdict.g30&&(
-                      <div style={{marginTop:10,padding:"8px 12px",borderRadius:8,background:"rgba(0,0,0,.04)",fontSize:11,color:C.textMid}}>
-                        💡 <strong>G30 :</strong> {verdict.g30note}
+                    {verdict&&verdict.type!=="renoncement"&&(
+                      <div style={{
+                        borderRadius:12,padding:"14px 16px",
+                        background:verdict.type==="accord"?C.greenLight:"#FFF0F0",
+                        border:`1.5px solid ${verdict.type==="accord"?"#60C090":"#F0A0A0"}`,
+                        marginTop:4
+                      }}>
+                        <div style={{fontWeight:800,fontSize:13,color:verdict.type==="accord"?C.green:"#B00020",marginBottom:8}}>
+                          {verdict.type==="accord"?"✅":"🚫"} {verdict.title}
+                        </div>
+                        <div style={{fontSize:12,color:verdict.type==="accord"?C.green:"#900018",lineHeight:1.7,marginBottom:verdict.details?8:0}}>
+                          {verdict.text}
+                        </div>
+                        {verdict.details&&(
+                          <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                            {verdict.details.map((d,i)=>(
+                              <div key={i} style={{fontSize:12,color:C.green,fontWeight:600}}>{d}</div>
+                            ))}
+                          </div>
+                        )}
+                        {verdict.g30&&(
+                          <div style={{marginTop:10,padding:"8px 12px",borderRadius:8,background:"rgba(0,0,0,.04)",fontSize:11,color:C.textMid}}>
+                            💡 <strong>G30 :</strong> {verdict.g30note}
+                          </div>
+                        )}
                       </div>
                     )}
-                  </div>
+                  </>
                 )}
+
                 {!spVoyage&&(
                   <div className="alert-info" style={{marginTop:0}}>
                     Sélectionnez le motif et le délai d'avis pour déterminer l'éligibilité aux frais annexes et à la G30.
@@ -1899,6 +1952,49 @@ function App(){
               </div>
             );
           })()}
+
+          {/* ── Billets combinés TRSI ── */}
+          <div className="card" style={{borderColor:"#B06A00",borderWidth:1.5}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+              <span style={{fontSize:20}}>🚌</span>
+              <h2 className="section-title" style={{margin:0,color:"#8A5200"}}>Billets combinés avec Transdev (TRSI)</h2>
+            </div>
+            <div style={{fontSize:12,color:C.textMid,marginBottom:14,fontStyle:"italic"}}>
+              Applicable uniquement aux billets combinés TGV/INT + TRSI. Le billet TRSI est valable toute la journée.
+            </div>
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead>
+                  <tr style={{background:"#FFF4E0"}}>
+                    <th style={{padding:"9px 12px",textAlign:"left",fontWeight:700,color:"#8A5200",borderBottom:`2px solid #F5C96A`,width:"60%"}}>Situation</th>
+                    <th style={{padding:"9px 12px",textAlign:"center",fontWeight:700,color:"#8A5200",borderBottom:`2px solid #F5C96A`}}>Traitement</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ["Poursuite du voyage — rachat billet TRSI ou SNCF","refus","Refus"],
+                    ["Renoncement — remboursement billet TGV/INT","accord","Accord"],
+                    ["Renoncement — remboursement billet TRSI","info","Accord ou refus selon date de demande *"],
+                    ["Frais d'hébergement — dernier TRSI du jour manqué","accord","Accord (BAD)"],
+                  ].map(([situation,type,label],i)=>{
+                    const rowBg=i%2===0?"white":"#FAFAFA";
+                    const badgeColor=type==="accord"?{bg:C.greenLight,text:C.green,border:"#60C090"}:type==="refus"?{bg:"#FFF0F0",text:"#B00020",border:"#F0A0A0"}:{bg:"#FFF8E0",text:"#8A5200",border:"#F5C96A"};
+                    return(
+                      <tr key={i} style={{background:rowBg,borderBottom:`1px solid ${C.border}`}}>
+                        <td style={{padding:"10px 12px",color:C.text,lineHeight:1.5}}>{situation}</td>
+                        <td style={{padding:"10px 12px",textAlign:"center"}}>
+                          <span style={{display:"inline-block",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:700,background:badgeColor.bg,color:badgeColor.text,border:`1px solid ${badgeColor.border}`}}>{label}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div style={{marginTop:10,fontSize:11,color:C.textMuted,fontStyle:"italic",lineHeight:1.6}}>
+              * Le billet TRSI est valable toute la journée — pas de remboursement possible le jour même du voyage.
+            </div>
+          </div>
 
           {/* Calculateur frais */}
           <div className="card">
