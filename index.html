@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="description" content="Calculateur d'indemnisation retard ferroviaire SNCF — BD30, G30, Frais Annexes, Rétractation et Résiliation abonnements Max. À usage interne SNCF Voyageurs."/>
-  <title>Calculateur BD30/G30 v2.2 — SNCF Voyageurs</title>
+  <title>Calculateur BD30/G30 v2.3 — SNCF Voyageurs</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -137,8 +137,7 @@ function delayLabel(min){
 function fmtMin(min){return`${min} min`;}
 
 const FRAIS_TYPES=[
-  {id:"restauration",          label:"Restauration",                           icon:"🍽️", unit:"voyageur", max:15,  note:"Dès 60 min de retard ET si pas de distribution de panier repas — sur justificatif"},
-  {id:"collation",             label:"Collation (sandwich/boisson)",           icon:"🥪", unit:"voyageur", max:10,  note:"Collation légère sur justificatif"},
+  {id:"restauration",          label:"Restauration",                           icon:"🍽️", unit:"voyageur", max:15,  note:"Dès 60 min de retard — sur justificatif (boissons alcoolisées exclues)"},
   {id:"transport",             label:"Acheminement (autocar / taxi hôtel)",    icon:"🚌", unit:"voyageur", max:30,  note:"Autocar, autobus, taxi pour hôtel et retour ou rachat de billets — UNIQUEMENT si pas de solution dans les 100 min. Taxi hors trajet hôtel, péage, essence, avion, location : REFUS."},
   {id:"taxi_nuit",             label:"Taxi nuit 23h–6h (≥ 60 min retard)",    icon:"🌙", unit:"course",   max:50,  note:"Toute arrivée entre 23h et 6h — dès 60 min de retard"},
   {id:"taxi_optimum",          label:"Taxi nuit Optimum+ (≥ 15 min retard)",  icon:"⭐", unit:"course",   max:100, note:"Clients Optimum+ — arrivée 23h–6h — dès 15 min de retard"},
@@ -1055,7 +1054,7 @@ function App(){
         </div>
         <div style={{display:"flex",alignItems:"center",gap:14}}>
           <span style={{color:"rgba(255,255,255,.45)",fontSize:11,display:isMobile?"none":"inline"}}>PRR 2021 · En vigueur 01/01/2025</span>
-          <span style={{color:"rgba(255,255,255,.5)",fontSize:10,fontWeight:700,letterSpacing:.5}}>v2.2</span>
+          <span style={{color:"rgba(255,255,255,.5)",fontSize:10,fontWeight:700,letterSpacing:.5}}>v2.3</span>
         </div>
       </header>
 
@@ -1411,22 +1410,69 @@ function App(){
                 <span style={{fontSize:11,background:"#FFD5C0",color:C.orange,padding:"2px 8px",borderRadius:10,fontWeight:700,border:`1px solid #E0A080`}}>BILLET COMBINÉ</span>
               </div>
               <div style={{fontSize:11.5,color:"#333",marginBottom:14,lineHeight:1.7,padding:"10px 14px",borderRadius:8,background:"#FFD5C0",border:"1px solid #E0A080"}}>
-                ⚠️ Voyages TRSI + TGV/INT/Ouigo = <strong>Billet Combiné</strong> (2 contrats distincts). Accord SNCF / TRSI garantit la continuité du voyage.<br/>
+                ⚠️ Voyages TRSI + TGV/INT = <strong>Billets Combinés</strong> (2 contrats distincts). Accord SNCF / TRSI garantit la continuité du voyage.<br/>
                 <span style={{fontSize:11.5,color:"#B06000",display:"block",marginTop:4}}>Trains : n° <strong>17466 à 17499</strong> · Marseille – Toulon – Nice</span>
               </div>
-              <div className="two-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                <div style={{padding:"12px 14px",borderRadius:8,background:"white",border:`1.5px solid #F0C0A0`}}>
-                  <div style={{fontWeight:800,fontSize:12,color:C.red,marginBottom:8,paddingBottom:6,borderBottom:"1px dashed #F0C0A0"}}>🚄 TGV retardé → TRSI manqué</div>
-                  <div style={{fontSize:11,lineHeight:1.8,color:"#222"}}>
-                    <div>• Report sur TRSI suivant (billet valable 1 jour)</div>
-                    <div>• <strong>Geste co BAD</strong> + G30 sur TGV/INT</div>
+
+              {/* ── Bloc 1 : TGV/INT retardé → TRSI manqué ── */}
+              <div style={{marginBottom:12}}>
+                <div style={{fontWeight:800,fontSize:12,color:C.red,marginBottom:8,padding:"6px 10px",background:"#FFEBE8",borderRadius:6,border:`1px solid #F0C0B0`}}>
+                  🚄 TGV ou INT retardé / supprimé → TRSI manqué &nbsp;<span style={{fontWeight:400,fontSize:11,color:"#C03000"}}>RT 7458</span>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                  <div style={{padding:"10px 12px",borderRadius:8,background:"white",border:`1.5px solid #F0C0A0`}}>
+                    <div style={{fontWeight:800,fontSize:11,color:C.red,marginBottom:5}}>Poursuite du voyage</div>
+                    <div style={{fontSize:11,lineHeight:1.75,color:"#222"}}>
+                      <div>Rachat billet TRSI ou SNCF</div>
+                      <div style={{color:C.red,fontWeight:700}}>⛔ Refus de prise en charge</div>
+                    </div>
+                  </div>
+                  <div style={{padding:"10px 12px",borderRadius:8,background:"white",border:`1.5px solid #F0C0A0`}}>
+                    <div style={{fontWeight:800,fontSize:11,color:C.green,marginBottom:5}}>Renoncement au voyage</div>
+                    <div style={{fontSize:11,lineHeight:1.75,color:"#222"}}>
+                      <div>✅ Accord billet TGV / INT</div>
+                      <div>✅ Accord TRSI (selon date RAD)</div>
+                      <div style={{fontSize:10.5,color:C.textMuted}}>Billet TRSI valable 1 journée → pas de remboursement le jour du voyage</div>
+                    </div>
+                  </div>
+                  <div style={{padding:"10px 12px",borderRadius:8,background:"white",border:`1.5px solid #F0C0A0`}}>
+                    <div style={{fontWeight:800,fontSize:11,color:C.amber,marginBottom:5}}>Frais annexes</div>
+                    <div style={{fontSize:11,lineHeight:1.75,color:"#222"}}>
+                      <div>Dernier TRSI du jour manqué</div>
+                      <div style={{color:C.green,fontWeight:700}}>✅ Accord — hébergement en BAD</div>
+                    </div>
                   </div>
                 </div>
-                <div style={{padding:"12px 14px",borderRadius:8,background:"white",border:`1.5px solid ${C.orange}`}}>
-                  <div style={{fontWeight:800,fontSize:12,color:C.orange,marginBottom:8,paddingBottom:6,borderBottom:"1px dashed #F0C0A0"}}>🚊 TRSI retardé → TGV manqué</div>
-                  <div style={{fontSize:11,lineHeight:1.8,color:"#222"}}>
-                    <div>• Report sur premier TGV/INT avec <strong>RC00</strong></div>
-                    <div style={{background:"#FFD5C0",padding:"4px 8px",borderRadius:4,fontSize:11.5,color:"#C03000",fontWeight:700,marginTop:4}}>⛔ Pas de PEC par SNCF Voyageurs</div>
+              </div>
+
+              {/* ── Bloc 2 : TRSI retardé → TGV/INT manqué ── */}
+              <div>
+                <div style={{fontWeight:800,fontSize:12,color:C.orange,marginBottom:8,padding:"6px 10px",background:"#FFF0D0",borderRadius:6,border:`1px solid ${C.amberMid}`}}>
+                  🚊 TRSI retardé / supprimé → TGV ou INT manqué &nbsp;<span style={{fontWeight:400,fontSize:11,color:"#A06000"}}>RT 7459</span>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                  <div style={{padding:"10px 12px",borderRadius:8,background:"white",border:`1.5px solid ${C.orange}`}}>
+                    <div style={{fontWeight:800,fontSize:11,color:C.orange,marginBottom:5}}>Poursuite du voyage</div>
+                    <div style={{fontSize:11,lineHeight:1.75,color:"#222"}}>
+                      <div>Rachat billet TGV / INT</div>
+                      <div style={{color:C.red,fontWeight:700}}>⛔ Refus</div>
+                      <div style={{fontSize:10.5,color:C.textMuted}}>RC00 uniquement par la gare de correspondance (refacturé à TRSI)</div>
+                    </div>
+                  </div>
+                  <div style={{padding:"10px 12px",borderRadius:8,background:"white",border:`1.5px solid ${C.orange}`}}>
+                    <div style={{fontWeight:800,fontSize:11,color:C.green,marginBottom:5}}>Renoncement au voyage</div>
+                    <div style={{fontSize:11,lineHeight:1.75,color:"#222"}}>
+                      <div>✅ Accord billet TGV / INT</div>
+                      <div>✅ Accord TRSI (selon date RAD)</div>
+                      <div style={{fontSize:10.5,color:C.textMuted}}>Billet TRSI valable 1 journée → pas de remboursement le jour du voyage</div>
+                    </div>
+                  </div>
+                  <div style={{padding:"10px 12px",borderRadius:8,background:"white",border:`1.5px solid ${C.orange}`}}>
+                    <div style={{fontWeight:800,fontSize:11,color:C.amber,marginBottom:5}}>Frais annexes</div>
+                    <div style={{fontSize:11,lineHeight:1.75,color:"#222"}}>
+                      <div>Dernier TGV/INT du jour manqué</div>
+                      <div style={{color:C.red,fontWeight:700}}>⛔ Refus — client s'adresse à TRSI</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1724,7 +1770,7 @@ function App(){
                     <div style={{flex:1,minWidth:0}}>
                       <label className="field-label">Type de frais</label>
                       <select aria-label="Type de frais" value={f.type} onChange={e=>updateFrais(f.id,"type",e.target.value)} style={{...sel}}>
-                        <optgroup label="🍽️ Avitaillement">{FRAIS_TYPES.filter(t=>["restauration","collation"].includes(t.id)).map(t=><option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}</optgroup>
+                        <optgroup label="🍽️ Restauration">{FRAIS_TYPES.filter(t=>["restauration"].includes(t.id)).map(t=><option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}</optgroup>
                         <optgroup label="🚌 Acheminement">{FRAIS_TYPES.filter(t=>["transport","taxi_nuit","taxi_optimum"].includes(t.id)).map(t=><option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}</optgroup>
                         <optgroup label="🏨 Hébergement — Tous tarifs">{FRAIS_TYPES.filter(t=>["hotel_province","hotel_grande"].includes(t.id)).map(t=><option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}</optgroup>
                         <optgroup label="⭐ Hébergement — Optimum+">{FRAIS_TYPES.filter(t=>["hotel_province_optimum","hotel_grande_optimum"].includes(t.id)).map(t=><option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}</optgroup>
@@ -2066,7 +2112,7 @@ function App(){
                   </div>
                 </div>
                 <div className="alert-danger" style={{marginTop:10,fontSize:11}}>
-                  <strong>TRSI</strong> : G30 sur segment TGV/INT uniquement. Si TGV retardé → geste co BAD + G30. Si TRSI retardé → RC00 sur TGV suivant.
+                  <strong>TRSI</strong> : Billet Combiné (2 contrats distincts) — RT 7458 (TGV retardé) / RT 7459 (TRSI retardé). G30 sur segment TGV/INT uniquement. Voir encart TRSI ci-dessous.
                 </div>
               </div>
             )}
@@ -2086,8 +2132,7 @@ function App(){
                     </thead>
                     <tbody>
                       {[
-                        ["Avitaillement","Restauration (repas complet, boissons alc. exclues)","15 € / voyageur"],
-                        ["Avitaillement","Collation sandwich / boisson","10 € / voyageur"],
+                        ["Restauration","Restauration (repas complet, boissons alc. exclues)","15 € / voyageur"],
                         ["Acheminement","Standard (autocar, taxi, voiture)","30 € / voyageur"],
                         ["Taxi nuit","Standard 23h–6h (≥ 60 min)","50 € / course"],
                         ["Taxi nuit","Optimum+ 23h–6h (≥ 15 min)","100 € / course"],
@@ -2107,7 +2152,7 @@ function App(){
                   </table>
                 </div>
                 <div className="alert-warn" style={{marginTop:12}}>
-                  ⚠️ Montant réel <strong>sans dépasser</strong> le barème · Factures acquittées obligatoires · <strong>Non remboursés :</strong> frais aériens, covoiturage, péage, essence · Avitaillement dès <strong>60 min</strong>
+                  ⚠️ Montant réel <strong>sans dépasser</strong> le barème · Factures acquittées obligatoires · <strong>Non remboursés :</strong> frais aériens, covoiturage, péage, essence, boissons alcoolisées · Restauration dès <strong>60 min</strong>
                 </div>
               </div>
             )}
@@ -2376,6 +2421,9 @@ function App(){
                 </div>
                 <div style={{marginTop:10,fontSize:11,color:C.textMuted,lineHeight:1.6}}>
                   ℹ️ <strong>Règle cartes :</strong> Délai de 14 jours décomptés à partir du 1er jour ouvré suivant l'achat · Date limite = 1er jour ouvré après J+14 · Jours fériés et dimanches exclus du décompte aux deux extrémités.
+                </div>
+                <div style={{marginTop:10,padding:"9px 12px",borderRadius:8,background:"#FFF8E7",border:"1.5px solid #F5C040",fontSize:11,lineHeight:1.65,color:"#7A5000"}}>
+                  <strong>⚠️ Cas GVT Transitoire — carte payée en Points + Euros :</strong> Si le client bénéficie du statut GVT (Transitoire) et a réglé sa carte en <strong>Points + Euros</strong>, le remboursement dans le délai légal est de <strong>49 € en BAD</strong> uniquement · RT&nbsp;<strong>5312</strong>.
                 </div>
               </div>
               );
@@ -2823,7 +2871,7 @@ function App(){
         color:C.textMuted,borderTop:`1px solid ${C.border}`,
         background:"white",letterSpacing:.2,
       }}>
-        Calculateur BD30 / G30 · <strong style={{color:C.red}}>version 2.2</strong> · by PDSA · Règlement PRR 2021 · En vigueur au 01/01/2025 · À titre indicatif uniquement
+        Calculateur BD30 / G30 · <strong style={{color:C.red}}>version 2.3</strong> · by PDSA · Règlement PRR 2021 · En vigueur au 02/03/2026 · À titre indicatif uniquement
       </footer>
 
     </div>
