@@ -78,11 +78,59 @@
   <script type="text/babel" data-presets="react">
 const { useState, useEffect } = React;
 
+// ── Palette light — Charte officielle SNCF mars 2018 ──────────────
+// Sources RGB : Prune #A1006B · Bleu Primaire #0088CE · Bleu Anthracite #00062F
+//               Vert Pomme #82BE00 · Violet #6E1E78 · Orange #E05206
+//               Jaune Safran #FFB612 · Bleu Canard #009AA6 · Rouge Assist #D52B1E
+const LIGHT = {
+  // Prune SNCF (couleur de marque)
+  red:"#A1006B",redDark:"#7A0052",redLight:"#F5E6EF",redMid:"#E0A8C8",
+  // Bleu Primaire SNCF
+  blue:"#0088CE",blueLight:"#E5F4FC",blueMid:"#90CCE8",
+  // Vert Pomme SNCF
+  green:"#82BE00",greenLight:"#EFF7D6",
+  // Orange SNCF → ambre
+  amber:"#E05206",amberLight:"#FDF0E8",amberMid:"#F5C090",
+  // Violet SNCF
+  purple:"#6E1E78",purpleLight:"#F0E6F4",
+  // Orange SNCF
+  orange:"#E05206",orangeLight:"#FDF0E8",
+  // Neutres (Cool Grays SNCF + fond chaud existant)
+  bg:"#EDE8E2",surface:"#FFFFFF",surface2:"#F8F4F0",
+  border:"#E2DAD4",borderMid:"#CFC6BE",
+  text:"#1C1410",textMid:"#5C534C",textMuted:"#6E6460",
+};
+// ── Palette dark — fondée sur Bleu Anthracite SNCF #00062F ─────────
+// Surface : Bleu Anthracite + variations · Accents : palette SNCF éclaircis
+const DARK = {
+  // Prune SNCF éclaircie pour fond sombre
+  red:"#E8609A",redDark:"#C04A7A",redLight:"#18041A",redMid:"#280A28",
+  // Bleu Primaire SNCF lisible sur fond sombre
+  blue:"#4AAEE8",blueLight:"#040A18",blueMid:"#081430",
+  // Vert Pomme SNCF éclairci
+  green:"#A8D840",greenLight:"#081200",
+  // Orange SNCF éclairci
+  amber:"#FFB612",amberLight:"#180E00",amberMid:"#2E1E00",
+  // Violet SNCF éclairci
+  purple:"#C080D8",purpleLight:"#100418",
+  // Orange SNCF éclairci
+  orange:"#FF8844",orangeLight:"#180600",
+  // Fond : Bleu Anthracite #00062F et ses déclinaisons
+  bg:"#00041A",surface:"#040C26",surface2:"#0A1434",
+  border:"#102050",borderMid:"#183060",
+  text:"#E8E4E0",textMid:"#9898A0",textMuted:"#686878",
+};
+// C reste LIGHT au niveau module (pour les sous-composants définis hors App)
+// À l'intérieur de App, P = darkMode ? DARK : LIGHT remplace C
+
+// Injection CSS globale
+const C = LIGHT;
+
+
 // ═══════════════════════════════════════════════════════════════════
 //  DONNÉES & LOGIQUE MÉTIER — inchangées
 // ═══════════════════════════════════════════════════════════════════
 
-const C = LIGHT;
 const CARRIERS = [
   { id:"tgv_dom",     label:"TGV INOUI domestique",           group:"eligible",     color:"#A1006B" },
   { id:"tgv_int",     label:"TGV international (filiale)",    group:"eligible",     color:"#A1006B" },
@@ -425,52 +473,7 @@ function computeResiliation(dateActivation,dateDemande,mensualite,aboData){
 //  DESIGN SYSTEM
 // ═══════════════════════════════════════════════════════════════════
 
-// ── Palette light — Charte officielle SNCF mars 2018 ──────────────
-// Sources RGB : Prune #A1006B · Bleu Primaire #0088CE · Bleu Anthracite #00062F
-//               Vert Pomme #82BE00 · Violet #6E1E78 · Orange #E05206
-//               Jaune Safran #FFB612 · Bleu Canard #009AA6 · Rouge Assist #D52B1E
-const LIGHT = {
-  // Prune SNCF (couleur de marque)
-  red:"#A1006B",redDark:"#7A0052",redLight:"#F5E6EF",redMid:"#E0A8C8",
-  // Bleu Primaire SNCF
-  blue:"#0088CE",blueLight:"#E5F4FC",blueMid:"#90CCE8",
-  // Vert Pomme SNCF
-  green:"#82BE00",greenLight:"#EFF7D6",
-  // Orange SNCF → ambre
-  amber:"#E05206",amberLight:"#FDF0E8",amberMid:"#F5C090",
-  // Violet SNCF
-  purple:"#6E1E78",purpleLight:"#F0E6F4",
-  // Orange SNCF
-  orange:"#E05206",orangeLight:"#FDF0E8",
-  // Neutres (Cool Grays SNCF + fond chaud existant)
-  bg:"#EDE8E2",surface:"#FFFFFF",surface2:"#F8F4F0",
-  border:"#E2DAD4",borderMid:"#CFC6BE",
-  text:"#1C1410",textMid:"#5C534C",textMuted:"#6E6460",
-};
-// ── Palette dark — fondée sur Bleu Anthracite SNCF #00062F ─────────
-// Surface : Bleu Anthracite + variations · Accents : palette SNCF éclaircis
-const DARK = {
-  // Prune SNCF éclaircie pour fond sombre
-  red:"#E8609A",redDark:"#C04A7A",redLight:"#18041A",redMid:"#280A28",
-  // Bleu Primaire SNCF lisible sur fond sombre
-  blue:"#4AAEE8",blueLight:"#040A18",blueMid:"#081430",
-  // Vert Pomme SNCF éclairci
-  green:"#A8D840",greenLight:"#081200",
-  // Orange SNCF éclairci
-  amber:"#FFB612",amberLight:"#180E00",amberMid:"#2E1E00",
-  // Violet SNCF éclairci
-  purple:"#C080D8",purpleLight:"#100418",
-  // Orange SNCF éclairci
-  orange:"#FF8844",orangeLight:"#180600",
-  // Fond : Bleu Anthracite #00062F et ses déclinaisons
-  bg:"#00041A",surface:"#040C26",surface2:"#0A1434",
-  border:"#102050",borderMid:"#183060",
-  text:"#E8E4E0",textMid:"#9898A0",textMuted:"#686878",
-};
-// C reste LIGHT au niveau module (pour les sous-composants définis hors App)
-// À l'intérieur de App, P = darkMode ? DARK : LIGHT remplace C
 
-// Injection CSS globale
 const makeGlobalCSS = (palette) => `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800;900&display=swap');
 
