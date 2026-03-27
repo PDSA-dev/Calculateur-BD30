@@ -427,15 +427,15 @@ const LIGHT = {
 };
 // ── Palette dark ───────────────────────────────────────────────────
 const DARK = {
-  red:"#E8608A",redDark:"#C73D66",redLight:"#2D1020",redMid:"#4A1830",
-  blue:"#6DA0F0",blueLight:"#0D1E38",blueMid:"#1A3560",
-  green:"#4DC98A",greenLight:"#0A2518",
-  amber:"#F5B84A",amberLight:"#2A1E04",amberMid:"#4A3208",
-  purple:"#B08AE0",purpleLight:"#1E0E38",
-  orange:"#FF7A45",orangeLight:"#2A1008",
-  bg:"#0F0F0F",surface:"#1A1A1A",surface2:"#222222",
-  border:"#2E2E2E",borderMid:"#3A3A3A",
-  text:"#F0EAE4",textMid:"#A89E98",textMuted:"#7A726C",
+  red:"#F0709A",redDark:"#D04F7A",redLight:"#280D1A",redMid:"#3E1628",
+  blue:"#7AB0F5",blueLight:"#0C1A30",blueMid:"#183060",
+  green:"#55D090",greenLight:"#0A2018",
+  amber:"#F5C050",amberLight:"#251800",amberMid:"#3E2C00",
+  purple:"#C09AEA",purpleLight:"#1A0A30",
+  orange:"#FF8A55",orangeLight:"#220E00",
+  bg:"#111318",surface:"#1C1F26",surface2:"#242830",
+  border:"#2C3042",borderMid:"#38404E",
+  text:"#E4DDD6",textMid:"#9A948E",textMuted:"#6A6460",
 };
 // C est mis à jour dynamiquement depuis le composant App (darkMode state)
 let C = LIGHT;
@@ -947,6 +947,7 @@ function App(){
     if(!el){el=document.createElement("style");el.id=id;document.head.appendChild(el);}
     el.textContent=makeGlobalCSS(C);
     document.body.style.background=C.bg;
+    document.body.style.transition="background .25s ease";
     // Écran de chargement
     const loader=document.getElementById("app-loading");
     if(loader){loader.classList.add("fade-out");setTimeout(()=>{if(loader.parentNode)loader.parentNode.removeChild(loader);},350);}
@@ -1325,7 +1326,7 @@ function App(){
                 <div style={{
                   display:"flex",alignItems:"center",gap:4,padding:"0 10px",
                   borderRight:`1px solid ${C.border}`,
-                  background:isG30?"#FDE8EE":"#EBF3FF",
+                  background:isG30?C.redLight:C.blueLight,
                 }}>
                   <div style={{width:6,height:6,borderRadius:"50%",background:isG30?C.red:C.blue,boxShadow:isG30?`0 0 5px ${C.red}88`:`0 0 5px ${C.blue}88`}}/>
                   <span style={{fontWeight:800,fontSize:11,color:isG30?C.red:C.blue,letterSpacing:.4}}>{isG30?"G30":"BD30"}</span>
@@ -1335,20 +1336,22 @@ function App(){
           );
         })}
         <div style={{flex:1}}/>
-        {/* Barèmes poussé tout à droite */}
+        {/* Barèmes — léger décalage avec séparateur visuel */}
         {(()=>{const t=TABS.find(x=>x.id==="bareme");const active=tab==="bareme";return(
-          <button className={`tab-btn${active?" active":""}`}
-            style={{"--tab-color":tabColors.bareme}}
-            role="tab"
-            aria-selected={active}
-            aria-controls="panel-bareme"
-            onClick={()=>setTab("bareme")}>
-            <span style={{fontSize:13,opacity:active?1:.55}} aria-hidden="true">{t.icon}</span>
-            <span>{t.label}</span>
-          </button>
+          <div style={{display:"flex",alignItems:"stretch",borderLeft:`1.5px solid ${C.border}`,marginLeft:8}}>
+            <button className={`tab-btn${active?" active":""}`}
+              style={{"--tab-color":tabColors.bareme}}
+              role="tab"
+              aria-selected={active}
+              aria-controls="panel-bareme"
+              onClick={()=>setTab("bareme")}>
+              <span style={{fontSize:13,opacity:active?1:.55}} aria-hidden="true">{t.icon}</span>
+              <span>{t.label}</span>
+            </button>
+          </div>
         );})()}
         <button onClick={resetAll} style={{
-          background:resetConfirm?"#FDE8EE":"none",
+          background:resetConfirm?C.redLight:"none",
           border:resetConfirm?`1px solid ${C.redMid}`:"none",
           borderRadius:resetConfirm?8:0,
           padding:resetConfirm?"4px 12px":"0 14px",
