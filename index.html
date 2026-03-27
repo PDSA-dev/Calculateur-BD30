@@ -100,26 +100,35 @@ const LIGHT = {
   border:"#E2DAD4",borderMid:"#CFC6BE",
   text:"#1C1410",textMid:"#5C534C",textMuted:"#6E6460",
 };
-// ── Palette dark — fondée sur Bleu Anthracite SNCF #00062F ─────────
-// Surface : Bleu Anthracite + variations · Accents : palette SNCF éclaircis
+// ── Palette dark — Premium modern dark mode ──────────────────────
+// Fond : gris ardoise profond (pas de noir pur)
+// Accents : Prune SNCF adoucie · Bleu ciel · Turquoise · Violet
 const DARK = {
-  // Prune SNCF éclaircie pour fond sombre
-  red:"#E8609A",redDark:"#C04A7A",redLight:"#18041A",redMid:"#280A28",
-  // Bleu Primaire SNCF lisible sur fond sombre
-  blue:"#4AAEE8",blueLight:"#040A18",blueMid:"#081430",
-  // Vert Pomme SNCF éclairci
-  green:"#A8D840",greenLight:"#081200",
-  // Orange SNCF éclairci
-  amber:"#FFB612",amberLight:"#180E00",amberMid:"#2E1E00",
-  // Violet SNCF éclairci
-  purple:"#C080D8",purpleLight:"#100418",
-  // Orange SNCF éclairci
-  orange:"#FF8844",orangeLight:"#180600",
-  // Fond : Bleu Anthracite #00062F et ses déclinaisons
-  bg:"#00041A",surface:"#040C26",surface2:"#0A1434",
-  border:"#102050",borderMid:"#183060",
-  text:"#E8E4E0",textMid:"#9898A0",textMuted:"#686878",
+  // Prune SNCF — vibrante et lisible sur fond sombre (rose-prune)
+  red:"#D4688E",redDark:"#B04E72",redLight:"#1F0A14",redMid:"#321020",
+  // Bleu ciel doux — éléments interactifs, liens, info
+  blue:"#5BA8E0",blueLight:"#091525",blueMid:"#122540",
+  // Vert menthe — succès, éligibilité
+  green:"#5BBF80",greenLight:"#071A10",
+  // Ambre chaud — alertes
+  amber:"#E8B84A",amberLight:"#1A1000",amberMid:"#2E2000",
+  // Violet doux — onglet Dates, éléments secondaires
+  purple:"#9A78CC",purpleLight:"#100A1C",
+  // Orange corail — avertissements
+  orange:"#E07A50",orangeLight:"#1A0A00",
+  // ── Surfaces (gris ardoise chaud — jamais noir pur) ────────────
+  bg:"#16161A",       // fond global : gris ardoise très sombre
+  surface:"#1E1E26",  // cartes, modales : légèrement plus clair
+  surface2:"#26262E", // zones imbriquées
+  // ── Bordures subtiles ──────────────────────────────────────────
+  border:"#2E2E3C",
+  borderMid:"#3A3A4A",
+  // ── Typographie — contraste WCAG AA/AAA ───────────────────────
+  text:"#E8E4DE",     // blanc cassé chaud — ratio > 12:1 sur bg
+  textMid:"#A09C98",  // texte secondaire
+  textMuted:"#686470",// texte tertiaire / labels
 };
+
 // C reste LIGHT au niveau module (pour les sous-composants définis hors App)
 // À l'intérieur de App, P = darkMode ? DARK : LIGHT remplace C
 
@@ -764,6 +773,58 @@ const makeGlobalCSS = (palette) => `
     display: inline-flex; align-items: center;
   }
   .acc-chevron.open { transform: rotate(180deg); }
+
+  /* ── Transitions globales (dark mode) ── */
+  .calc-root, .calc-root * {
+    transition-property: background-color, border-color, color, box-shadow;
+    transition-duration: .18s;
+    transition-timing-function: ease;
+  }
+  /* Exclure les transitions sur les animations spécifiques */
+  .calc-root button, .calc-root input, .calc-root select {
+    transition: background-color .15s ease, border-color .15s ease,
+                color .15s ease, box-shadow .15s ease,
+                transform .12s ease, opacity .12s ease;
+  }
+
+  /* ── Carte premium dark mode ── */
+  .card {
+    box-shadow: 0 1px 3px rgba(0,0,0,.35), 0 6px 20px rgba(0,0,0,.25),
+                inset 0 1px 0 rgba(255,255,255,.04);
+  }
+
+  /* ── Glassmorphism : surfaces profondes ── */
+  .card-glass {
+    background: rgba(255,255,255,.035) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,.08) !important;
+    box-shadow: 0 4px 24px rgba(0,0,0,.4),
+                inset 0 1px 0 rgba(255,255,255,.06);
+  }
+
+  /* ── Inputs dark mode ── */
+  .calc-input {
+    box-shadow: inset 0 1px 3px rgba(0,0,0,.25);
+  }
+  .calc-input:focus {
+    box-shadow: 0 0 0 3px ${palette.red}28, inset 0 1px 3px rgba(0,0,0,.2);
+  }
+
+  /* ── Boutons interactifs ── */
+  .delay-btn:hover {
+    background: ${palette.surface2} !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  }
+
+  /* ── Scrollbar dark ── */
+  .calc-root ::-webkit-scrollbar { width: 6px; height: 6px; }
+  .calc-root ::-webkit-scrollbar-track { background: ${palette.bg}; }
+  .calc-root ::-webkit-scrollbar-thumb {
+    background: ${palette.borderMid};
+    border-radius: 3px;
+  }
+  .calc-root ::-webkit-scrollbar-thumb:hover { background: ${palette.textMuted}; }
 `;
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1453,11 +1514,11 @@ function App(){
               const availableCarriers=isG30?CARRIERS.filter(c=>G30_CARRIER_IDS.includes(c.id)):CARRIERS;
 
               let segBg=P.surface2,segBorder=P.border;
-              if(isNE){segBg="#FFF3E0";segBorder="#F0C090";}
+              if(isNE){segBg=darkMode?P.amberLight:"#FFF3E0";segBorder=darkMode?P.amberMid:"#F0C090";}
               else if(seg.tarif==="prime_titulaire"){segBg=P.blueLight;segBorder=P.blueMid;}
-              else if(seg.tarif==="prime_fid_tiers"){segBg="#F0EAFF";segBorder="#C8A8F0";}
-              else if(seg.tarif==="prime_gvt_tiers"){segBg="#F8EAFF";segBorder="#D0A0E0";}
-              else if(isMax){segBg=P.greenLight;segBorder="#A8DFC0";}
+              else if(seg.tarif==="prime_fid_tiers"){segBg=P.purpleLight;segBorder=darkMode?"#3A2858":"#C8A8F0";}
+              else if(seg.tarif==="prime_gvt_tiers"){segBg=P.purpleLight;segBorder=darkMode?"#3A2858":"#D0A0E0";}
+              else if(isMax){segBg=P.greenLight;segBorder=darkMode?"#1A3A20":"#A8DFC0";}
 
               return(
                 <div key={seg.id} className="seg-card seg-anim" style={{
@@ -1684,7 +1745,7 @@ function App(){
             <div className="card" style={{border:`2px solid ${P.orange}`,background:P.orangeLight}}>
               <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
                 <h2 className="section-title" style={{margin:0,color:P.orange}}><IconTitle icon={Icon.warn} label="TRSI — Transdev Rail Sud Inter-métropole" color={P.orange}/></h2>
-                <span style={{fontSize:11,background:"#FFD5C0",color:P.orange,padding:"2px 8px",borderRadius:10,fontWeight:700,border:`1px solid #E0A080`}}>BILLET COMBINÉ</span>
+                <span style={{fontSize:11,background:darkMode?P.orangeLight:"#FFD5C0",color:P.orange,padding:"2px 8px",borderRadius:10,fontWeight:700,border:`1px solid #E0A080`}}>BILLET COMBINÉ</span>
               </div>
               <div style={{fontSize:11.5,color:P.textMid,marginBottom:14,lineHeight:1.7,padding:"10px 14px",borderRadius:8,background:"#FFD5C0",border:"1px solid #E0A080"}}>
                 ⚠️ Voyages TRSI + TGV/INT = <strong>Billets Combinés</strong> (2 contrats distincts). Accord SNCF / TRSI garantit la continuité du voyage.<br/>
@@ -1693,7 +1754,7 @@ function App(){
 
               {/* ── Bloc 1 : TGV/INT retardé → TRSI manqué ── */}
               <div style={{marginBottom:12}}>
-                <div style={{fontWeight:800,fontSize:12,color:P.red,marginBottom:8,padding:"6px 10px",background:"#FFEBE8",borderRadius:6,border:`1px solid #F0C0B0`}}>
+                <div style={{fontWeight:800,fontSize:12,color:P.red,marginBottom:8,padding:"6px 10px",background:darkMode?P.redLight:"#FFEBE8",borderRadius:6,border:`1px solid #F0C0B0`}}>
                   🚄 TGV ou INT retardé / supprimé → TRSI manqué &nbsp;<span style={{fontWeight:400,fontSize:11,color:"#C03000"}}>RT 7458</span>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
@@ -1724,7 +1785,7 @@ function App(){
 
               {/* ── Bloc 2 : TRSI retardé → TGV/INT manqué ── */}
               <div>
-                <div style={{fontWeight:800,fontSize:12,color:P.orange,marginBottom:8,padding:"6px 10px",background:"#FFF0D0",borderRadius:6,border:`1px solid ${P.amberMid}`}}>
+                <div style={{fontWeight:800,fontSize:12,color:P.orange,marginBottom:8,padding:"6px 10px",background:darkMode?P.amberLight:"#FFF0D0",borderRadius:6,border:`1px solid ${P.amberMid}`}}>
                   🚊 TRSI retardé / supprimé → TGV ou INT manqué &nbsp;<span style={{fontWeight:400,fontSize:11,color:"#A06000"}}>RT 7459</span>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
@@ -1760,7 +1821,7 @@ function App(){
           <div className="card card-anim" style={{border:`2px solid #A1006B`,background:P.surface,animationDelay:".12s"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
               <h2 className="section-title" style={{margin:0,color:P.amber}}><IconTitle icon={Icon.star} label="Indemnisation exceptionnelle" color={P.amber}/></h2>
-              <span style={{fontSize:11,background:"#FFF0A0",color:P.amber,padding:"2px 8px",borderRadius:10,fontWeight:700,border:`1px solid ${P.amberMid}`}}>INCIDENTS MAJEURS</span>
+              <span style={{fontSize:11,background:darkMode?P.amberLight:"#FFF0A0",color:P.amber,padding:"2px 8px",borderRadius:10,fontWeight:700,border:`1px solid ${P.amberMid}`}}>INCIDENTS MAJEURS</span>
             </div>
             <div style={{fontSize:12,color:P.amber,marginBottom:14,lineHeight:1.65,padding:"10px 14px",background:"rgba(245,196,0,.07)",borderRadius:8,border:"1px solid rgba(161,0,107,.12)"}}>
               Lors d'incidents majeurs, SNCF peut porter l'indemnisation au-delà du barème G30. S'applique sur <strong>un seul segment</strong>.<br/>
@@ -1773,7 +1834,7 @@ function App(){
                   display:"flex",alignItems:"center",gap:6,cursor:"pointer",
                   padding:"7px 14px",borderRadius:8,
                   border:`1.5px solid ${exceptLevel===lvl.id?P.amberMid:P.border}`,
-                  background:exceptLevel===lvl.id?"#FFF0A0":"white",
+                  background:exceptLevel===lvl.id?(darkMode?P.amberLight:"#FFF0A0"):P.surface,
                   fontSize:12,fontWeight:exceptLevel===lvl.id?800:400,
                   color:exceptLevel===lvl.id?P.amber:P.textMid,transition:"all .15s",
                 }}>
@@ -1797,7 +1858,7 @@ function App(){
                         cursor:isEligible?"pointer":"not-allowed",
                         padding:"8px 14px",borderRadius:8,
                         border:`1.5px solid ${isSelected?P.amberMid:isEligible?P.border:"#F0E0C0"}`,
-                        background:isSelected?"#FFF0A0":isEligible?"white":"#FAF8F0",
+                        background:isSelected?(darkMode?P.amberLight:"#FFF0A0"):isEligible?P.surface:P.surface2,
                         opacity:isEligible?1:.5,fontSize:12,
                         fontWeight:isSelected?700:400,
                         color:isSelected?P.amber:isEligible?P.textMid:P.textMuted,
@@ -2448,7 +2509,7 @@ function App(){
                         const active=finalDelay>=min&&finalDelay<=max&&finalDelay>=30;
                         return(
                           <tr key={label} className={active?"bareme-row-active":""} style={{
-                            background:active?"#FFF0D0":i%2===0?"white":P.surface2,
+                            background:active?(darkMode?P.amberLight:"#FFF0D0"):i%2===0?P.surface:P.surface2,
                             transition:"background .25s ease",fontWeight:active?700:400,
                           }}>
                             <td style={{padding:"9px 12px",fontWeight:700,color:active?P.amber:P.text,whiteSpace:"nowrap"}}>
@@ -3333,12 +3394,14 @@ function App(){
 
       {/* ── PANNEAU HISTORIQUE ───────────────────────────────────── */}
       {showHistory&&(
-        <div style={{
+        <div className={darkMode?"card-glass":""} style={{
           position:"fixed",top:0,right:0,bottom:0,zIndex:300,
           width:"min(380px,100vw)",
-          background:P.surface,
-          borderLeft:`1.5px solid ${P.border}`,
-          boxShadow:"-8px 0 32px rgba(0,0,0,.18)",
+          background:darkMode?"rgba(22,22,26,.88)":P.surface,
+          borderLeft:`1.5px solid ${darkMode?"rgba(255,255,255,.08)":P.border}`,
+          boxShadow:darkMode?"-8px 0 48px rgba(0,0,0,.6), inset 1px 0 0 rgba(255,255,255,.05)":"-8px 0 32px rgba(0,0,0,.18)",
+          backdropFilter:darkMode?"blur(20px)":"none",
+          WebkitBackdropFilter:darkMode?"blur(20px)":"none",
           display:"flex",flexDirection:"column",
           animation:"fadeSlideIn .22s cubic-bezier(.22,.68,0,1.2)",
         }}>
