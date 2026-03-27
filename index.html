@@ -413,35 +413,35 @@ function computeResiliation(dateActivation,dateDemande,mensualite,aboData){
 //  DESIGN SYSTEM
 // ═══════════════════════════════════════════════════════════════════
 
-const C = {
-  red:         "#9B0040",
-  redDark:     "#7A0032",
-  redLight:    "#FDE8EE",
-  redMid:      "#F5C0D0",
-  blue:        "#003DA5",
-  blueLight:   "#EBF3FF",
-  blueMid:     "#B0CCEE",
-  green:       "#0A5C38",
-  greenLight:  "#D4F0E4",
-  amber:       "#8B5000",
-  amberLight:  "#FFF3D0",
-  amberMid:    "#F5D080",
-  purple:      "#5B2D8E",
-  purpleLight: "#F5EEFF",
-  orange:      "#CC3D00",
-  orangeLight: "#FFF0E8",
-  bg:          "#EDE8E2",
-  surface:     "#FFFFFF",
-  surface2:    "#F8F4F0",
-  border:      "#E2DAD4",
-  borderMid:   "#CFC6BE",
-  text:        "#1C1410",
-  textMid:     "#5C534C",
-  textMuted:   "#6E6460",
+// ── Palette light ──────────────────────────────────────────────────
+const LIGHT = {
+  red:"#9B0040",redDark:"#7A0032",redLight:"#FDE8EE",redMid:"#F5C0D0",
+  blue:"#003DA5",blueLight:"#EBF3FF",blueMid:"#B0CCEE",
+  green:"#0A5C38",greenLight:"#D4F0E4",
+  amber:"#8B5000",amberLight:"#FFF3D0",amberMid:"#F5D080",
+  purple:"#5B2D8E",purpleLight:"#F5EEFF",
+  orange:"#CC3D00",orangeLight:"#FFF0E8",
+  bg:"#EDE8E2",surface:"#FFFFFF",surface2:"#F8F4F0",
+  border:"#E2DAD4",borderMid:"#CFC6BE",
+  text:"#1C1410",textMid:"#5C534C",textMuted:"#6E6460",
 };
+// ── Palette dark ───────────────────────────────────────────────────
+const DARK = {
+  red:"#E8608A",redDark:"#C73D66",redLight:"#2D1020",redMid:"#4A1830",
+  blue:"#6DA0F0",blueLight:"#0D1E38",blueMid:"#1A3560",
+  green:"#4DC98A",greenLight:"#0A2518",
+  amber:"#F5B84A",amberLight:"#2A1E04",amberMid:"#4A3208",
+  purple:"#B08AE0",purpleLight:"#1E0E38",
+  orange:"#FF7A45",orangeLight:"#2A1008",
+  bg:"#0F0F0F",surface:"#1A1A1A",surface2:"#222222",
+  border:"#2E2E2E",borderMid:"#3A3A3A",
+  text:"#F0EAE4",textMid:"#A89E98",textMuted:"#7A726C",
+};
+// C est mis à jour dynamiquement depuis le composant App (darkMode state)
+let C = LIGHT;
 
 // Injection CSS globale
-const GLOBAL_CSS = `
+const makeGlobalCSS = (C) => `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800;900&display=swap');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -529,7 +529,7 @@ const GLOBAL_CSS = `
     border: 1.5px solid ${C.border};
     font-size: 13px;
     outline: none;
-    background: white;
+    background: ${C.surface};
     box-sizing: border-box;
     transition: border-color .2s, box-shadow .2s;
     color: ${C.text};
@@ -546,7 +546,7 @@ const GLOBAL_CSS = `
 
   /* ── Cards ── */
   .card {
-    background: white;
+    background: ${C.surface};
     border-radius: 16px;
     border: 1px solid ${C.border};
     box-shadow: 0 1px 3px rgba(28,10,4,.05), 0 4px 14px rgba(28,10,4,.06);
@@ -569,7 +569,7 @@ const GLOBAL_CSS = `
     font-weight: 500;
     cursor: pointer;
     border: 1.5px solid ${C.border};
-    background: white;
+    background: ${C.surface};
     color: ${C.textMid};
     transition: all .15s;
     outline: none;
@@ -586,7 +586,7 @@ const GLOBAL_CSS = `
     padding: 7px 14px;
     border-radius: 20px;
     border: 1.5px solid ${C.border};
-    background: white;
+    background: ${C.surface};
     font-size: 12px; font-weight: 400;
     color: ${C.textMid};
     transition: all .15s;
@@ -616,9 +616,9 @@ const GLOBAL_CSS = `
   }
 
   /* ── Alert boxes ── */
-  .alert-info   { background: ${C.blueLight};  border: 1px solid ${C.blueMid};  color: #002A80; border-radius: 10px; padding: 10px 13px; font-size: 11.5px; line-height: 1.65; }
+  .alert-info   { background: ${C.blueLight};  border: 1px solid ${C.blueMid};  color: ${C.blue}; border-radius: 10px; padding: 10px 13px; font-size: 11.5px; line-height: 1.65; }
   .alert-warn   { background: ${C.amberLight}; border: 1px solid ${C.amberMid}; color: ${C.amber}; border-radius: 10px; padding: 10px 13px; font-size: 11.5px; line-height: 1.65; }
-  .alert-danger { background: #FFF0F0; border: 1px solid #F0A0A0; color: #7A0020; border-radius: 10px; padding: 10px 13px; font-size: 11.5px; line-height: 1.65; }
+  .alert-danger { background: ${C.redLight}; border: 1px solid ${C.redMid}; color: ${C.red}; border-radius: 10px; padding: 10px 13px; font-size: 11.5px; line-height: 1.65; }
 
   /* ── Results breakdown row ── */
   .result-row {
@@ -930,22 +930,27 @@ function LogoApp({size=72}){
 }
 
 function App(){
-  // Injection CSS une seule fois
+  // ── Helpers localStorage ──────────────────────────────────────────
+  const LS_KEY="bd30_state_v25";
+  const lsLoad=(k,def)=>{try{const v=JSON.parse(localStorage.getItem(LS_KEY)||"{}");return v[k]!==undefined?v[k]:def;}catch{return def;}};
+  const lsSave=(partial)=>{try{const cur=JSON.parse(localStorage.getItem(LS_KEY)||"{}");localStorage.setItem(LS_KEY,JSON.stringify({...cur,...partial}));}catch{}};
+
+  // ── Dark mode ─────────────────────────────────────────────────────
+  const[darkMode,setDarkMode]=useState(()=>lsLoad("darkMode",false));
+  // Synchronise la palette globale C avant chaque render
+  C = darkMode ? DARK : LIGHT;
+
+  // ── Inject / update CSS global dès que darkMode change ───────────
   useEffect(()=>{
-    // CSS global
     const id="calc-global-styles";
-    if(!document.getElementById(id)){
-      const el=document.createElement("style");
-      el.id=id;el.textContent=GLOBAL_CSS;
-      document.head.appendChild(el);
-    }
-    // ── Écran de chargement : disparition smooth ──────────────────
+    let el=document.getElementById(id);
+    if(!el){el=document.createElement("style");el.id=id;document.head.appendChild(el);}
+    el.textContent=makeGlobalCSS(C);
+    document.body.style.background=C.bg;
+    // Écran de chargement
     const loader=document.getElementById("app-loading");
-    if(loader){
-      loader.classList.add("fade-out");
-      setTimeout(()=>{if(loader.parentNode)loader.parentNode.removeChild(loader);},350);
-    }
-    // Favicon — vrai logo applicatif
+    if(loader){loader.classList.add("fade-out");setTimeout(()=>{if(loader.parentNode)loader.parentNode.removeChild(loader);},350);}
+    // Favicon
     const favId="calc-favicon";
     if(!document.getElementById(favId)){
       const link=document.createElement("link");
@@ -953,14 +958,15 @@ function App(){
       link.href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2218%22%20fill%3D%22%23131F3A%22/%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2246%22%20r%3D%2226%22%20fill%3D%22%23F0A020%22/%3E%3Cline%20x1%3D%2250%22%20y1%3D%2246%22%20x2%3D%2250%22%20y2%3D%2228%22%20stroke%3D%22white%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22/%3E%3Cline%20x1%3D%2250%22%20y1%3D%2246%22%20x2%3D%2240%22%20y2%3D%2254%22%20stroke%3D%22white%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22/%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2246%22%20r%3D%222%22%20fill%3D%22white%22/%3E%3Crect%20x%3D%2212%22%20y%3D%2260%22%20width%3D%2276%22%20height%3D%2226%22%20rx%3D%227%22%20fill%3D%22%231C2D4E%22/%3E%3Crect%20x%3D%2214%22%20y%3D%2262%22%20width%3D%2222%22%20height%3D%2222%22%20rx%3D%225%22%20fill%3D%22%234A5568%22/%3E%3Crect%20x%3D%2218%22%20y%3D%2265%22%20width%3D%2210%22%20height%3D%229%22%20rx%3D%222%22%20fill%3D%22white%22%20fill-opacity%3D%220.65%22/%3E%3Crect%20x%3D%2238%22%20y%3D%2262%22%20width%3D%2224%22%20height%3D%2222%22%20rx%3D%223%22%20fill%3D%22%237A8FA8%22/%3E%3Crect%20x%3D%2240%22%20y%3D%2264%22%20width%3D%2220%22%20height%3D%228%22%20rx%3D%221.5%22%20fill%3D%22%23B8CCDD%22/%3E%3Crect%20x%3D%2264%22%20y%3D%2262%22%20width%3D%2222%22%20height%3D%2222%22%20rx%3D%225%22%20fill%3D%22%23F5A623%22/%3E%3Crect%20x%3D%2266%22%20y%3D%2265%22%20width%3D%2211%22%20height%3D%228%22%20rx%3D%222%22%20fill%3D%22%23B8D0E8%22%20fill-opacity%3D%220.75%22/%3E%3Ccircle%20cx%3D%2222%22%20cy%3D%2287%22%20r%3D%224%22%20fill%3D%22%230D1828%22/%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2287%22%20r%3D%224%22%20fill%3D%22%230D1828%22/%3E%3Ccircle%20cx%3D%2278%22%20cy%3D%2287%22%20r%3D%224%22%20fill%3D%22%230D1828%22/%3E%3C/svg%3E";
       document.head.appendChild(link);
     }
-    // Titre onglet navigateur
     document.title="Calculateur BD30/G30 — SNCF Voyageurs";
-  },[]);
+  },[darkMode]);
 
-  // ── Helpers localStorage ──────────────────────────────────────────
-  const LS_KEY="bd30_state_v25";
-  const lsLoad=(k,def)=>{try{const v=JSON.parse(localStorage.getItem(LS_KEY)||"{}");return v[k]!==undefined?v[k]:def;}catch{return def;}};
-  const lsSave=(partial)=>{try{const cur=JSON.parse(localStorage.getItem(LS_KEY)||"{}");localStorage.setItem(LS_KEY,JSON.stringify({...cur,...partial}));}catch{}};
+  const toggleDark=()=>{
+    setDarkMode(d=>{
+      lsSave({darkMode:!d});
+      return !d;
+    });
+  };
 
   const[tab,setTab]=useState(()=>lsLoad("tab","retard"));
   const[isMobile,setIsMobile]=useState(()=>typeof window!=="undefined"&&window.innerWidth<640);
@@ -969,6 +975,32 @@ function App(){
     window.addEventListener("resize",h);
     return()=>window.removeEventListener("resize",h);
   },[]);
+
+  // ── Raccourcis clavier Alt+1/2/3/4 + Alt+D (dark mode) ───────────
+  const TAB_IDS=["retard","frais","bareme","dates"];
+  useEffect(()=>{
+    const handler=(e)=>{
+      if(!e.altKey)return;
+      const n=parseInt(e.key);
+      if(n>=1&&n<=4){e.preventDefault();setTab(TAB_IDS[n-1]);}
+      if(e.key==="d"||e.key==="D"){e.preventDefault();toggleDark();}
+    };
+    window.addEventListener("keydown",handler);
+    return()=>window.removeEventListener("keydown",handler);
+  },[]);
+
+  // ── Historique des 5 derniers calculs ─────────────────────────────
+  const[history,setHistory]=useState(()=>{
+    try{return JSON.parse(localStorage.getItem("bd30_history_v25")||"[]");}catch{return[];}
+  });
+  const[showHistory,setShowHistory]=useState(false);
+  const pushHistory=(entry)=>{
+    setHistory(prev=>{
+      const next=[entry,...prev].slice(0,5);
+      try{localStorage.setItem("bd30_history_v25",JSON.stringify(next));}catch{}
+      return next;
+    });
+  };
 
   const[segments,setSegments]=useState(()=>{
     const saved=lsLoad("segments",null);
@@ -1022,7 +1054,24 @@ function App(){
       }
     }
     const total=baseTotal+exceptBonus;
-    setComputed({results,baseTotal,total,exceptBonus,finalDelay,eligible:total>=4,hasNonEligible:results.some(r=>!r.eligible),excLvl,exceptOnSegId});
+    const newComputed={results,baseTotal,total,exceptBonus,finalDelay,eligible:total>=4,hasNonEligible:results.some(r=>!r.eligible),excLvl,exceptOnSegId};
+    setComputed(newComputed);
+    // Historique : enregistre les résultats éligibles (debounce implicite par useEffect)
+    if(total>=4){
+      pushHistory({
+        ts:Date.now(),
+        delay:finalDelay,
+        total,
+        mode:results.length===1?"G30":"BD30",
+        segments:results.map(r=>({
+          carrier:r.carrier?r.carrier.label:"—",
+          tarif:TARIFS.find(t=>t.id===r.tarif)?.label||r.tarif,
+          price:parseFloat(r.price)||0,
+          amount:r.amount,
+          rate:r.rateInfo?.rate||null,
+        })),
+      });
+    }
   },[segments,finalDelay,exceptLevel,exceptSegmentId]);
 
   const addFrais   =()=>setFraisList(f=>[...f,emptyFrais()]);
@@ -1193,7 +1242,7 @@ function App(){
   // ── Styles partagés inline (ce qui ne peut pas être en CSS global) ──
   const inp={
     width:"100%",padding:"10px 13px",borderRadius:10,border:`1.5px solid ${C.border}`,
-    fontSize:13,outline:"none",background:"white",boxSizing:"border-box",
+    fontSize:13,outline:"none",background:C.surface,boxSizing:"border-box",
     transition:"border-color .2s, box-shadow .2s",fontFamily:"inherit",color:C.text,
   };
   const sel={...inp,cursor:"pointer"};
@@ -1222,13 +1271,37 @@ function App(){
         </div>
         <div style={{display:"flex",alignItems:"center",gap:14}}>
           <span style={{color:"rgba(255,255,255,.45)",fontSize:11,display:isMobile?"none":"inline"}}>PRR 2021 · En vigueur 01/01/2025</span>
+          {/* ── Historique ── */}
+          {history.length>0&&(
+            <button onClick={()=>setShowHistory(h=>!h)} title="Historique des calculs (5 derniers)" style={{
+              background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",
+              color:"white",borderRadius:8,padding:"3px 9px",fontSize:11,fontWeight:700,
+              cursor:"pointer",display:"flex",alignItems:"center",gap:5,fontFamily:"inherit",
+            }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 16 14"/></svg>
+              {!isMobile&&"Historique"}
+              <span style={{background:"rgba(255,255,255,.25)",borderRadius:10,padding:"0 5px",fontSize:10}}>{history.length}</span>
+            </button>
+          )}
+          {/* ── Dark mode toggle ── */}
+          <button onClick={toggleDark} title={darkMode?"Mode clair (Alt+D)":"Mode sombre (Alt+D)"} style={{
+            background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",
+            color:"white",borderRadius:8,padding:"3px 9px",fontSize:13,
+            cursor:"pointer",display:"flex",alignItems:"center",gap:5,fontFamily:"inherit",
+            transition:"background .15s",
+          }}>
+            {darkMode
+              ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            }
+          </button>
           <span style={{color:"rgba(255,255,255,.5)",fontSize:10,fontWeight:700,letterSpacing:.5}}>v2.5</span>
         </div>
       </header>
 
       {/* ── TABS ────────────────────────────────────────────────── */}
       <div style={{
-        background:"white",borderBottom:`1.5px solid ${C.border}`,
+        background:C.surface,borderBottom:`1.5px solid ${C.border}`,
         display:"flex",padding:"0 14px",overflowX:"auto",WebkitOverflowScrolling:"touch",
         alignItems:"stretch",gap:0,position:"sticky",top:0,zIndex:100,
         boxShadow:"0 2px 12px rgba(0,0,0,.07)",
@@ -1295,7 +1368,7 @@ function App(){
 
           {/* Bandeau mode */}
           <div style={{
-            background:"white",borderRadius:12,
+            background:C.surface,borderRadius:12,
             border:`1.5px solid ${isG30?"#F8D0D8":"#B8D0F0"}`,
             borderLeft:`3.5px solid ${MODE_COLOR}`,
             padding:"12px 16px",marginBottom:12,fontSize:12.5,
@@ -1308,7 +1381,7 @@ function App(){
               <span style={{
                 display:"block",marginTop:7,paddingTop:7,
                 borderTop:`1px solid #B8D0F0`,
-                fontSize:11.5,color:"#1A3A6A",lineHeight:1.65,
+                fontSize:11.5,color:C.blue,lineHeight:1.65,
               }}>
                 ⚠️ <strong>Retard imputé à un transporteur non éligible</strong> — seul le retard enregistré <strong>sur le(s) segment(s) éligible(s)</strong> est pris en compte. Le retard global calculé via un train de report ne s'applique pas.
               </span>
@@ -1577,7 +1650,7 @@ function App(){
                 <h2 className="section-title" style={{margin:0,color:C.orange}}><IconTitle icon={Icon.warn} label="TRSI — Transdev Rail Sud Inter-métropole" color={C.orange}/></h2>
                 <span style={{fontSize:11,background:"#FFD5C0",color:C.orange,padding:"2px 8px",borderRadius:10,fontWeight:700,border:`1px solid #E0A080`}}>BILLET COMBINÉ</span>
               </div>
-              <div style={{fontSize:11.5,color:"#333",marginBottom:14,lineHeight:1.7,padding:"10px 14px",borderRadius:8,background:"#FFD5C0",border:"1px solid #E0A080"}}>
+              <div style={{fontSize:11.5,color:C.textMid,marginBottom:14,lineHeight:1.7,padding:"10px 14px",borderRadius:8,background:"#FFD5C0",border:"1px solid #E0A080"}}>
                 ⚠️ Voyages TRSI + TGV/INT = <strong>Billets Combinés</strong> (2 contrats distincts). Accord SNCF / TRSI garantit la continuité du voyage.<br/>
                 <span style={{fontSize:11.5,color:"#B06000",display:"block",marginTop:4}}>Trains : n° <strong>17466 à 17499</strong> · Marseille – Toulon – Nice</span>
               </div>
@@ -1588,24 +1661,24 @@ function App(){
                   🚄 TGV ou INT retardé / supprimé → TRSI manqué &nbsp;<span style={{fontWeight:400,fontSize:11,color:"#C03000"}}>RT 7458</span>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-                  <div style={{padding:"10px 12px",borderRadius:8,background:"white",border:`1.5px solid #F0C0A0`}}>
+                  <div style={{padding:"10px 12px",borderRadius:8,background:C.surface,border:`1.5px solid #F0C0A0`}}>
                     <div style={{fontWeight:800,fontSize:11,color:C.red,marginBottom:5}}>Poursuite du voyage</div>
-                    <div style={{fontSize:11,lineHeight:1.75,color:"#222"}}>
+                    <div style={{fontSize:11,lineHeight:1.75,color:C.text}}>
                       <div>Rachat billet TRSI ou SNCF</div>
                       <div style={{color:C.red,fontWeight:700}}>⛔ Refus de prise en charge</div>
                     </div>
                   </div>
-                  <div style={{padding:"10px 12px",borderRadius:8,background:"white",border:`1.5px solid #F0C0A0`}}>
+                  <div style={{padding:"10px 12px",borderRadius:8,background:C.surface,border:`1.5px solid #F0C0A0`}}>
                     <div style={{fontWeight:800,fontSize:11,color:C.green,marginBottom:5}}>Renoncement au voyage</div>
-                    <div style={{fontSize:11,lineHeight:1.75,color:"#222"}}>
+                    <div style={{fontSize:11,lineHeight:1.75,color:C.text}}>
                       <div>✅ Accord billet TGV / INT</div>
                       <div>✅ Accord TRSI (selon date RAD)</div>
                       <div style={{fontSize:10.5,color:C.textMuted}}>Billet TRSI valable 1 journée → pas de remboursement le jour du voyage</div>
                     </div>
                   </div>
-                  <div style={{padding:"10px 12px",borderRadius:8,background:"white",border:`1.5px solid #F0C0A0`}}>
+                  <div style={{padding:"10px 12px",borderRadius:8,background:C.surface,border:`1.5px solid #F0C0A0`}}>
                     <div style={{fontWeight:800,fontSize:11,color:C.amber,marginBottom:5}}>Frais annexes</div>
-                    <div style={{fontSize:11,lineHeight:1.75,color:"#222"}}>
+                    <div style={{fontSize:11,lineHeight:1.75,color:C.text}}>
                       <div>Dernier TRSI du jour manqué</div>
                       <div style={{color:C.green,fontWeight:700}}>✅ Accord — hébergement en BAD</div>
                     </div>
@@ -1619,25 +1692,25 @@ function App(){
                   🚊 TRSI retardé / supprimé → TGV ou INT manqué &nbsp;<span style={{fontWeight:400,fontSize:11,color:"#A06000"}}>RT 7459</span>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-                  <div style={{padding:"10px 12px",borderRadius:8,background:"white",border:`1.5px solid ${C.orange}`}}>
+                  <div style={{padding:"10px 12px",borderRadius:8,background:C.surface,border:`1.5px solid ${C.orange}`}}>
                     <div style={{fontWeight:800,fontSize:11,color:C.orange,marginBottom:5}}>Poursuite du voyage</div>
-                    <div style={{fontSize:11,lineHeight:1.75,color:"#222"}}>
+                    <div style={{fontSize:11,lineHeight:1.75,color:C.text}}>
                       <div>Rachat billet TGV / INT</div>
                       <div style={{color:C.red,fontWeight:700}}>⛔ Refus</div>
                       <div style={{fontSize:10.5,color:C.textMuted}}>RC00 uniquement par la gare de correspondance (refacturé à TRSI)</div>
                     </div>
                   </div>
-                  <div style={{padding:"10px 12px",borderRadius:8,background:"white",border:`1.5px solid ${C.orange}`}}>
+                  <div style={{padding:"10px 12px",borderRadius:8,background:C.surface,border:`1.5px solid ${C.orange}`}}>
                     <div style={{fontWeight:800,fontSize:11,color:C.green,marginBottom:5}}>Renoncement au voyage</div>
-                    <div style={{fontSize:11,lineHeight:1.75,color:"#222"}}>
+                    <div style={{fontSize:11,lineHeight:1.75,color:C.text}}>
                       <div>✅ Accord billet TGV / INT</div>
                       <div>✅ Accord TRSI (selon date RAD)</div>
                       <div style={{fontSize:10.5,color:C.textMuted}}>Billet TRSI valable 1 journée → pas de remboursement le jour du voyage</div>
                     </div>
                   </div>
-                  <div style={{padding:"10px 12px",borderRadius:8,background:"white",border:`1.5px solid ${C.orange}`}}>
+                  <div style={{padding:"10px 12px",borderRadius:8,background:C.surface,border:`1.5px solid ${C.orange}`}}>
                     <div style={{fontWeight:800,fontSize:11,color:C.amber,marginBottom:5}}>Frais annexes</div>
-                    <div style={{fontSize:11,lineHeight:1.75,color:"#222"}}>
+                    <div style={{fontSize:11,lineHeight:1.75,color:C.text}}>
                       <div>Dernier TGV/INT du jour manqué</div>
                       <div style={{color:C.red,fontWeight:700}}>⛔ Refus — client s'adresse à TRSI</div>
                     </div>
@@ -1648,7 +1721,7 @@ function App(){
           )}
 
           {/* ── Indemnisation exceptionnelle ── */}
-          <div className="card card-anim" style={{border:`2px solid #A1006B`,background:"white",animationDelay:".12s"}}>
+          <div className="card card-anim" style={{border:`2px solid #A1006B`,background:C.surface,animationDelay:".12s"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
               <h2 className="section-title" style={{margin:0,color:C.amber}}><IconTitle icon={Icon.star} label="Indemnisation exceptionnelle" color={C.amber}/></h2>
               <span style={{fontSize:11,background:"#FFF0A0",color:C.amber,padding:"2px 8px",borderRadius:10,fontWeight:700,border:`1px solid ${C.amberMid}`}}>INCIDENTS MAJEURS</span>
@@ -1708,7 +1781,7 @@ function App(){
 
           {/* ── Résultats ── */}
           {computed&&(
-            <div className="card-anim" style={{background:"white",borderRadius:14,border:`1px solid ${C.borderMid}`,overflow:"hidden",boxShadow:"0 6px 28px rgba(0,0,0,.12)"}}>
+            <div className="card-anim" style={{background:C.surface,borderRadius:14,border:`1px solid ${C.borderMid}`,overflow:"hidden",boxShadow:"0 6px 28px rgba(0,0,0,.12)"}}>
 
               {/* En-tête résultat */}
               <div style={{
@@ -1871,7 +1944,7 @@ function App(){
                   <div style={{background:C.purple,padding:"9px 14px",color:"white",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:8}}>
                     <span style={{fontSize:16}}>⚠️</span> Double indemnisation Billet Prime — Procédure LT 2397
                   </div>
-                  <div style={{padding:"12px 14px",background:C.purpleLight,fontSize:11.5,lineHeight:1.8,color:"#333"}}>
+                  <div style={{padding:"12px 14px",background:C.purpleLight,fontSize:11.5,lineHeight:1.8,color:C.textMid}}>
                     {computed.results.some(r=>r.tarif==="prime_fid_tiers")&&<div style={{marginBottom:8}}><strong style={{color:C.purple}}>🔵 FID + Tiers :</strong> FID → points · Tiers → BAD. 2 demandes distinctes à créer.</div>}
                     {computed.results.some(r=>r.tarif==="prime_gvt_tiers")&&<div><strong style={{color:"#7B3FA0"}}>🟣 GVT + Tiers :</strong> GVT → BAD · Tiers → BAD. 2 demandes distinctes à créer.</div>}
                   </div>
@@ -1894,7 +1967,7 @@ function App(){
             const infoOpen=openFraisCards.has("fraisInfo");
             const toggleInfo=()=>setOpenFraisCards(prev=>{const n=new Set(prev);n.has("fraisInfo")?n.delete("fraisInfo"):n.add("fraisInfo");return n;});
             return(
-              <div style={{background:"white",borderRadius:16,border:`1.5px solid ${C.blue}`,overflow:"hidden",marginBottom:12,boxShadow:"0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.06)"}}>
+              <div style={{background:C.surface,borderRadius:16,border:`1.5px solid ${C.blue}`,overflow:"hidden",marginBottom:12,boxShadow:"0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.06)"}}>
                 <button onClick={toggleInfo} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 18px",background:`linear-gradient(135deg,#002B7A,${C.blue})`,border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
                   <span style={{display:"flex",alignItems:"center",gap:8,color:"white",fontWeight:700,fontSize:13}}>
                     <span>ℹ️</span> Frais annexes (§09) — Types acceptés par SNCF Voyageurs sur justificatifs
@@ -1913,7 +1986,7 @@ function App(){
                       ].map(({icon,title,text})=>(
                         <div key={title} style={{padding:"10px 12px",borderRadius:10,background:C.blueLight,border:`1.5px solid ${C.blueMid}`}}>
                           <div style={{fontSize:11,fontWeight:800,color:C.blue,marginBottom:5}}>{icon} {title}</div>
-                          <div style={{fontSize:11,color:"#222",lineHeight:1.6}}>{text}</div>
+                          <div style={{fontSize:11,color:C.text,lineHeight:1.6}}>{text}</div>
                         </div>
                       ))}
                     </div>
@@ -2053,7 +2126,7 @@ function App(){
                       <div style={{borderRadius:12,padding:"14px 16px",background:"#F5EEFF",border:"1.5px solid #C89AE0",marginTop:4}}>
                         <div style={{fontWeight:800,fontSize:13,color:"#7B3FA0",marginBottom:10}}>✅ Renoncement au voyage — Remboursement intégral</div>
                         <div style={{fontSize:12,color:"#5A2D80",lineHeight:1.7,marginBottom:10}}>Remboursement intégral du billet, y compris les billets <strong>NE / NR</strong>.</div>
-                        <div style={{padding:"10px 14px",borderRadius:10,background:"white",border:"1px solid #D4B0F0"}}>
+                        <div style={{padding:"10px 14px",borderRadius:10,background:C.surface,border:"1px solid #D4B0F0"}}>
                           <div style={{fontWeight:700,fontSize:11,color:"#7B3FA0",marginBottom:8,textTransform:"uppercase",letterSpacing:.5}}>🎫 Barème particulier — Billets Prime GVT / Exit (en BAD uniquement)</div>
                           {[["Prime Promo","40 €/trajet/voyageur"],["Billet Prime 2nde","40 €/trajet/voyageur"],["Billet Prime 1ère","50 €/trajet/voyageur"]].map(([type,montant])=>(
                             <div key={type} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:"1px solid #EDE0FF"}}>
@@ -2198,7 +2271,7 @@ function App(){
                     })}
                     {/* Résultats frais */}
                     {fraisComputed&&(
-                      <div style={{background:"white",borderRadius:14,border:`1px solid ${C.borderMid}`,overflow:"hidden",boxShadow:"0 6px 24px rgba(0,0,0,.10)",marginTop:4}}>
+                      <div style={{background:C.surface,borderRadius:14,border:`1px solid ${C.borderMid}`,overflow:"hidden",boxShadow:"0 6px 24px rgba(0,0,0,.10)",marginTop:4}}>
                         <div style={{background:`linear-gradient(135deg,#002B7A,${C.blue})`,padding:"18px 22px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                           <div style={{color:"rgba(255,255,255,.65)",fontSize:12,fontWeight:500}}>Total remboursable estimé</div>
                           <div style={{color:"white",fontSize:32,fontWeight:800,letterSpacing:"-.5px",fontVariantNumeric:"tabular-nums lining-nums",fontFamily:"'Inter','DM Sans',sans-serif"}}>
@@ -2679,7 +2752,7 @@ function App(){
                 borderRadius:14,padding:"16px 18px",
               }}>
                 <div style={{display:"grid",gridTemplateColumns:jourOuvrableMode&&retractResult.limiteNonOuvrable?"1fr 1fr 1fr":"1fr 1fr",gap:12,marginBottom:14}}>
-                  <div style={{background:"white",borderRadius:10,padding:"12px 14px",border:`1px solid ${C.border}`}}>
+                  <div style={{background:C.surface,borderRadius:10,padding:"12px 14px",border:`1px solid ${C.border}`}}>
                     <div style={{fontSize:11,fontWeight:700,color:C.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>Date d'achat</div>
                     <div style={{fontSize:13,fontWeight:700,color:C.text}}>{fmtDate(retractResult.achat)}</div>
                   </div>
@@ -2757,7 +2830,7 @@ function App(){
                 {/* 3 étapes visuelles */}
                 <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr auto 1fr",gap:6,alignItems:"center",marginBottom:14}}>
                   {/* Étape 1 : date achat */}
-                  <div style={{background:"white",borderRadius:10,padding:"11px 12px",border:`1px solid ${C.border}`}}>
+                  <div style={{background:C.surface,borderRadius:10,padding:"11px 12px",border:`1px solid ${C.border}`}}>
                     <div style={{fontSize:11,fontWeight:700,color:C.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:3}}>① Date d'achat</div>
                     <div style={{fontSize:12,fontWeight:700,color:C.text}}>{fmtDate(cr.achat)}</div>
                   </div>
@@ -3003,7 +3076,7 @@ function App(){
                     }
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:resiliResult.finBlocage3mois?"1fr 1fr 1fr":"1fr 1fr",gap:10}}>
-                    <div style={{background:"white",borderRadius:10,padding:"11px 13px",border:`1px solid ${resiliResult.activationCorrigee?"#F5D080":C.border}`}}>
+                    <div style={{background:C.surface,borderRadius:10,padding:"11px 13px",border:`1px solid ${resiliResult.activationCorrigee?"#F5D080":C.border}`}}>
                       <div style={{fontSize:11,fontWeight:700,color:C.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:3}}>Activation</div>
                       <div style={{fontSize:12,fontWeight:700,color:C.text}}>{fmtDate(resiliResult.activation)}</div>
                       {resiliResult.activationCorrigee&&(
@@ -3094,7 +3167,7 @@ function App(){
                         {icon:"⚖️",label:"Emprisonnement",sub:"Abonné uniquement"},
                       ].map(({icon,label,sub})=>(
                         <div key={label} style={{
-                          background:"white",borderRadius:8,padding:"7px 10px",
+                          background:C.surface,borderRadius:8,padding:"7px 10px",
                           border:`1px solid #D8B4FF`,
                         }}>
                           <div style={{fontSize:11,fontWeight:700,color:C.purple}}>{icon} {label}</div>
@@ -3222,6 +3295,100 @@ function App(){
 
       </main>
 
+      {/* ── PANNEAU HISTORIQUE ───────────────────────────────────── */}
+      {showHistory&&(
+        <div style={{
+          position:"fixed",top:0,right:0,bottom:0,zIndex:300,
+          width:"min(380px,100vw)",
+          background:C.surface,
+          borderLeft:`1.5px solid ${C.border}`,
+          boxShadow:"-8px 0 32px rgba(0,0,0,.18)",
+          display:"flex",flexDirection:"column",
+          animation:"fadeSlideIn .22s cubic-bezier(.22,.68,0,1.2)",
+        }}>
+          {/* Header panneau */}
+          <div style={{
+            padding:"14px 16px",borderBottom:`1px solid ${C.border}`,
+            display:"flex",alignItems:"center",justifyContent:"space-between",
+            background:C.surface,flexShrink:0,
+          }}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={C.red} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span style={{fontWeight:800,fontSize:14,color:C.text}}>Historique des calculs</span>
+              <span style={{background:C.redLight,color:C.red,borderRadius:10,padding:"1px 8px",fontSize:11,fontWeight:700}}>{history.length}/5</span>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              {history.length>0&&(
+                <button onClick={()=>{setHistory([]);try{localStorage.removeItem("bd30_history_v25");}catch{}}} style={{
+                  background:"none",border:`1px solid ${C.border}`,color:C.textMuted,
+                  borderRadius:6,padding:"3px 9px",fontSize:11,cursor:"pointer",fontFamily:"inherit",
+                }}>Effacer</button>
+              )}
+              <button onClick={()=>setShowHistory(false)} style={{
+                background:C.surface2,border:`1px solid ${C.border}`,color:C.text,
+                borderRadius:8,width:28,height:28,fontSize:15,cursor:"pointer",
+                display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"inherit",
+              }}>×</button>
+            </div>
+          </div>
+          {/* Liste */}
+          <div style={{overflowY:"auto",flex:1,padding:"12px 14px",display:"flex",flexDirection:"column",gap:10}}>
+            {history.length===0?(
+              <div style={{textAlign:"center",color:C.textMuted,fontSize:13,marginTop:40}}>
+                Aucun calcul éligible enregistré
+              </div>
+            ):history.map((h,i)=>{
+              const d=new Date(h.ts);
+              const dateStr=d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});
+              const timeStr=d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+              return(
+                <div key={h.ts} className="card" style={{
+                  padding:"12px 14px",marginBottom:0,
+                  borderLeft:`3px solid ${C.red}`,
+                  animation:`fadeSlideUp .2s ${i*0.04}s both`,
+                }}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{background:C.redLight,color:C.red,borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:700}}>{h.mode}</span>
+                      <span style={{fontSize:11,color:C.textMuted}}>{dateStr} · {timeStr}</span>
+                    </div>
+                    <span style={{fontWeight:900,fontSize:17,color:C.green,fontVariantNumeric:"tabular-nums",fontFamily:"'Inter','DM Sans',sans-serif"}}>
+                      {h.total.toFixed(2)} €
+                    </span>
+                  </div>
+                  <div style={{fontSize:11,color:C.textMid,marginBottom:4}}>
+                    ⏱ {delayLabel(h.delay)}
+                  </div>
+                  {h.segments.map((s,j)=>(
+                    <div key={j} style={{
+                      fontSize:11,color:C.textMuted,
+                      padding:"4px 0",
+                      borderTop:j>0?`1px solid ${C.border}`:"none",
+                      display:"flex",justifyContent:"space-between",alignItems:"center",
+                    }}>
+                      <span>{s.carrier} · {s.tarif}</span>
+                      <span style={{fontWeight:700,color:C.text}}>
+                        {s.rate!=null?`${s.rate}%`:"—"} → {s.amount.toFixed(2)} €
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{padding:"10px 14px",borderTop:`1px solid ${C.border}`,fontSize:10.5,color:C.textMuted,textAlign:"center",flexShrink:0}}>
+            5 derniers résultats éligibles · stockés localement
+          </div>
+        </div>
+      )}
+      {/* Overlay cliquable pour fermer le panneau */}
+      {showHistory&&(
+        <div onClick={()=>setShowHistory(false)} style={{
+          position:"fixed",inset:0,zIndex:299,background:"rgba(0,0,0,.35)",
+          animation:"fadeSlideUp .15s ease",
+        }}/>
+      )}
+
       {/* ── BARRE RÉSULTAT FIXE ─────────────────────────────────── */}
       {tab==="retard"&&computed&&computed.eligible&&(
         <div role="status" aria-live="polite" aria-atomic="true" style={{
@@ -3293,7 +3460,7 @@ function App(){
       <footer style={{
         textAlign:"center",padding:"14px",fontSize:11.5,
         color:C.textMuted,borderTop:`1px solid ${C.border}`,
-        background:"white",letterSpacing:.2,
+        background:C.surface,letterSpacing:.2,
       }}>
         Calculateur BD30 / G30 · <strong style={{color:C.red}}>version 2.5</strong> · by PDSA · Règlement PRR 2021 · En vigueur au 02/03/2026 · À titre indicatif uniquement
       </footer>
