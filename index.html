@@ -82,6 +82,7 @@ const { useState, useEffect } = React;
 //  DONNÉES & LOGIQUE MÉTIER — inchangées
 // ═══════════════════════════════════════════════════════════════════
 
+const C = LIGHT;
 const CARRIERS = [
   { id:"tgv_dom",     label:"TGV INOUI domestique",           group:"eligible",     color:"#A1006B" },
   { id:"tgv_int",     label:"TGV international (filiale)",    group:"eligible",     color:"#A1006B" },
@@ -468,7 +469,6 @@ const DARK = {
 };
 // C reste LIGHT au niveau module (pour les sous-composants définis hors App)
 // À l'intérieur de App, P = darkMode ? DARK : LIGHT remplace C
-const C = LIGHT;
 
 // Injection CSS globale
 const makeGlobalCSS = (palette) => `
