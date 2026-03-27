@@ -456,6 +456,10 @@ const DARK = {
   text:"#E8E4E0",textMid:"#9898A0",textMuted:"#686878",
 };
 // C est mis à jour dynamiquement depuis le composant App (darkMode state)
+// Les sous-composants définis hors App lisent window._BD30_C au moment du rendu
+window._BD30_C = LIGHT;
+const getC = () => window._BD30_C;
+// Alias direct — réécrit avant chaque render par App (voir toggleDark / useLayoutEffect)
 let C = LIGHT;
 
 // Injection CSS globale
@@ -955,16 +959,19 @@ function App(){
 
   // ── Dark mode ─────────────────────────────────────────────────────
   const[darkMode,setDarkMode]=useState(()=>lsLoad("darkMode",false));
-  // Synchronise la palette globale C avant chaque render
-  C = darkMode ? DARK : LIGHT;
+  // Synchronise la palette globale AVANT chaque render (synchrone)
+  // useLayoutEffect garantit la mise à jour avant que les sous-composants peignent
+  const palette = darkMode ? DARK : LIGHT;
+  C = palette;
+  window._BD30_C = palette;
 
   // ── Inject / update CSS global dès que darkMode change ───────────
   useEffect(()=>{
     const id="calc-global-styles";
     let el=document.getElementById(id);
     if(!el){el=document.createElement("style");el.id=id;document.head.appendChild(el);}
-    el.textContent=makeGlobalCSS(C);
-    document.body.style.background=C.bg;
+    el.textContent=makeGlobalCSS(palette);
+    document.body.style.background=palette.bg;
     document.body.style.transition="background .25s ease";
     // Écran de chargement
     const loader=document.getElementById("app-loading");
