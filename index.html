@@ -455,12 +455,9 @@ const DARK = {
   border:"#102050",borderMid:"#183060",
   text:"#E8E4E0",textMid:"#9898A0",textMuted:"#686878",
 };
-// C est mis à jour dynamiquement depuis le composant App (darkMode state)
-// Les sous-composants définis hors App lisent window._BD30_C au moment du rendu
-window._BD30_C = LIGHT;
-const getC = () => window._BD30_C;
-// Alias direct — réécrit avant chaque render par App (voir toggleDark / useLayoutEffect)
-let C = LIGHT;
+// C reste LIGHT au niveau module (pour les sous-composants définis hors App)
+// À l'intérieur de App, P = darkMode ? DARK : LIGHT remplace C
+const C = LIGHT;
 
 // Injection CSS globale
 const makeGlobalCSS = (C) => `
@@ -959,19 +956,16 @@ function App(){
 
   // ── Dark mode ─────────────────────────────────────────────────────
   const[darkMode,setDarkMode]=useState(()=>lsLoad("darkMode",false));
-  // Synchronise la palette globale AVANT chaque render (synchrone)
-  // useLayoutEffect garantit la mise à jour avant que les sous-composants peignent
-  const palette = darkMode ? DARK : LIGHT;
-  C = palette;
-  window._BD30_C = palette;
+  // ── Palette active selon dark mode ──────────────────────────────
+  const P = darkMode ? DARK : LIGHT;
 
   // ── Inject / update CSS global dès que darkMode change ───────────
   useEffect(()=>{
     const id="calc-global-styles";
     let el=document.getElementById(id);
     if(!el){el=document.createElement("style");el.id=id;document.head.appendChild(el);}
-    el.textContent=makeGlobalCSS(palette);
-    document.body.style.background=palette.bg;
+    el.textContent=makeGlobalCSS(P);
+    document.body.style.background=P.bg;
     document.body.style.transition="background .25s ease";
     // Écran de chargement
     const loader=document.getElementById("app-loading");
@@ -1174,8 +1168,8 @@ function App(){
     try{localStorage.removeItem(LS_KEY);}catch{}
   };
 
-  const MODE_COLOR=isG30?C.red:C.blue;
-  const tabColors={"retard":C.red,"frais":C.blue,"bareme":"#009AA6","dates":"#6E1E78"};
+  const MODE_COLOR=isG30?P.red:P.blue;
+  const tabColors={"retard":P.red,"frais":P.blue,"bareme":"#009AA6","dates":"#6E1E78"};
 
   // ── Copier résultat ───────────────────────────────────────────────
   const[copied,setCopied]=useState(null); // null | "retard" | "frais"
@@ -1267,19 +1261,19 @@ function App(){
 
   // ── Styles partagés inline (ce qui ne peut pas être en CSS global) ──
   const inp={
-    width:"100%",padding:"10px 13px",borderRadius:10,border:`1.5px solid ${C.border}`,
-    fontSize:13,outline:"none",background:C.surface,boxSizing:"border-box",
-    transition:"border-color .2s, box-shadow .2s",fontFamily:"inherit",color:C.text,
+    width:"100%",padding:"10px 13px",borderRadius:10,border:`1.5px solid ${P.border}`,
+    fontSize:13,outline:"none",background:P.surface,boxSizing:"border-box",
+    transition:"border-color .2s, box-shadow .2s",fontFamily:"inherit",color:P.text,
   };
   const sel={...inp,cursor:"pointer"};
 
   // ─────────────────────────────────────────────────────────────────
   return(
-    <div className="calc-root" style={{fontFamily:"'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif",minHeight:"100vh",background:C.bg}}>
+    <div className="calc-root" style={{fontFamily:"'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif",minHeight:"100vh",background:P.bg}}>
 
       {/* ── HEADER COMPACT ──────────────────────────────────────── */}
       <header style={{
-        background:C.red,padding:"0 16px",height:42,
+        background:P.red,padding:"0 16px",height:42,
         display:"flex",alignItems:"center",justifyContent:"space-between",
         boxShadow:"0 1px 4px rgba(0,0,0,.18)",flexShrink:0,
       }}>
@@ -1327,14 +1321,14 @@ function App(){
 
       {/* ── TABS ────────────────────────────────────────────────── */}
       <div style={{
-        background:C.surface,borderBottom:`1.5px solid ${C.border}`,
+        background:P.surface,borderBottom:`1.5px solid ${P.border}`,
         display:"flex",padding:"0 14px",overflowX:"auto",WebkitOverflowScrolling:"touch",
         alignItems:"stretch",gap:0,position:"sticky",top:0,zIndex:100,
         boxShadow:"0 2px 12px rgba(0,0,0,.07)",
       }}>
         {TABS.filter(t=>t.id!=="bareme").map(t=>{
           const active=tab===t.id;
-          const col=tabColors[t.id]||C.red;
+          const col=tabColors[t.id]||P.red;
           return(
             <React.Fragment key={t.id}>
               <button className={`tab-btn${active?" active":""}`}
@@ -1350,11 +1344,11 @@ function App(){
               {t.id==="retard"&&(
                 <div style={{
                   display:"flex",alignItems:"center",gap:4,padding:"0 10px",
-                  borderRight:`1px solid ${C.border}`,
-                  background:isG30?C.redLight:C.blueLight,
+                  borderRight:`1px solid ${P.border}`,
+                  background:isG30?P.redLight:P.blueLight,
                 }}>
-                  <div style={{width:6,height:6,borderRadius:"50%",background:isG30?C.red:C.blue,boxShadow:isG30?`0 0 5px ${C.red}88`:`0 0 5px ${C.blue}88`}}/>
-                  <span style={{fontWeight:800,fontSize:11,color:isG30?C.red:C.blue,letterSpacing:.4}}>{isG30?"G30":"BD30"}</span>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:isG30?P.red:P.blue,boxShadow:isG30?`0 0 5px ${P.red}88`:`0 0 5px ${P.blue}88`}}/>
+                  <span style={{fontWeight:800,fontSize:11,color:isG30?P.red:P.blue,letterSpacing:.4}}>{isG30?"G30":"BD30"}</span>
                 </div>
               )}
             </React.Fragment>
@@ -1363,7 +1357,7 @@ function App(){
         <div style={{flex:1}}/>
         {/* Barèmes — léger décalage avec séparateur visuel */}
         {(()=>{const t=TABS.find(x=>x.id==="bareme");const active=tab==="bareme";return(
-          <div style={{display:"flex",alignItems:"stretch",borderLeft:`1.5px solid ${C.border}`,marginLeft:8}}>
+          <div style={{display:"flex",alignItems:"stretch",borderLeft:`1.5px solid ${P.border}`,marginLeft:8}}>
             <button className={`tab-btn${active?" active":""}`}
               style={{"--tab-color":tabColors.bareme}}
               role="tab"
@@ -1376,12 +1370,12 @@ function App(){
           </div>
         );})()}
         <button onClick={resetAll} style={{
-          background:resetConfirm?C.redLight:"none",
-          border:resetConfirm?`1px solid ${C.redMid}`:"none",
+          background:resetConfirm?P.redLight:"none",
+          border:resetConfirm?`1px solid ${P.redMid}`:"none",
           borderRadius:resetConfirm?8:0,
           padding:resetConfirm?"4px 12px":"0 14px",
           fontSize:11,
-          color:resetConfirm?C.red:C.textMuted,
+          color:resetConfirm?P.red:P.textMuted,
           cursor:"pointer",
           letterSpacing:.2,fontWeight:resetConfirm?700:500,fontFamily:"inherit",
           transition:"all .2s",whiteSpace:"nowrap",
@@ -1396,20 +1390,20 @@ function App(){
 
           {/* Bandeau mode */}
           <div style={{
-            background:C.surface,borderRadius:12,
+            background:P.surface,borderRadius:12,
             border:`1.5px solid ${isG30?"#F8D0D8":"#B8D0F0"}`,
             borderLeft:`3.5px solid ${MODE_COLOR}`,
             padding:"12px 16px",marginBottom:12,fontSize:12.5,
-            color:C.textMid,lineHeight:1.7,
+            color:P.textMid,lineHeight:1.7,
             boxShadow:"0 1px 3px rgba(0,0,0,.04)",
           }}>
             {isG30
-              ?<><strong style={{color:C.red}}>ℹ️ Mode G30 — Trajet sec</strong> — 1 seul segment. Transporteurs éligibles : <strong>TGV INOUI domestique</strong>, <strong>TGV international (filiale)</strong> et <strong>Intercités</strong>. Ajoutez un segment pour basculer en <strong style={{color:C.blue}}>BD30</strong>.</>
-              :<><strong style={{color:C.blue}}>ℹ️ Mode BD30 — Billet Direct</strong> — voyages ≥ 2 segments en une seule transaction. Les billets <span style={{color:C.green,fontWeight:700}}>Abonnés Max et Forfaits</span> (0€) suivent un barème G30 spécifique en montants fixes. Supprimez des segments pour repasser en <strong style={{color:C.red}}>G30</strong>.
+              ?<><strong style={{color:P.red}}>ℹ️ Mode G30 — Trajet sec</strong> — 1 seul segment. Transporteurs éligibles : <strong>TGV INOUI domestique</strong>, <strong>TGV international (filiale)</strong> et <strong>Intercités</strong>. Ajoutez un segment pour basculer en <strong style={{color:P.blue}}>BD30</strong>.</>
+              :<><strong style={{color:P.blue}}>ℹ️ Mode BD30 — Billet Direct</strong> — voyages ≥ 2 segments en une seule transaction. Les billets <span style={{color:P.green,fontWeight:700}}>Abonnés Max et Forfaits</span> (0€) suivent un barème G30 spécifique en montants fixes. Supprimez des segments pour repasser en <strong style={{color:P.red}}>G30</strong>.
               <span style={{
                 display:"block",marginTop:7,paddingTop:7,
                 borderTop:`1px solid #B8D0F0`,
-                fontSize:11.5,color:C.blue,lineHeight:1.65,
+                fontSize:11.5,color:P.blue,lineHeight:1.65,
               }}>
                 ⚠️ <strong>Retard imputé à un transporteur non éligible</strong> — seul le retard enregistré <strong>sur le(s) segment(s) éligible(s)</strong> est pris en compte. Le retard global calculé via un train de report ne s'applique pas.
               </span>
@@ -1425,12 +1419,12 @@ function App(){
                 <span style={{
                   padding:"3px 12px",borderRadius:20,fontSize:11,fontWeight:800,
                   background:isG30?"#FDE8EE":"#D8EEFF",
-                  color:isG30?C.red:C.blue,
+                  color:isG30?P.red:P.blue,
                   border:`1px solid ${isG30?"#F0C0C0":"#A0C0E8"}`,
                 }}>{isG30?"G30 — Trajet sec":"BD30 — Billet Direct"}</span>
               </div>
               <button onClick={addSegment} style={{
-                background:C.red,color:"white",border:"none",
+                background:P.red,color:"white",border:"none",
                 borderRadius:8,padding:"7px 16px",fontSize:12,fontWeight:700,
                 cursor:"pointer",boxShadow:"0 2px 10px rgba(155,0,64,.25)",fontFamily:"inherit",
               }}>+ Segment</button>
@@ -1441,15 +1435,15 @@ function App(){
               const isNE=c&&c.group==="non_eligible";
               const tarifInfo=TARIFS.find(t=>t.id===seg.tarif);
               const isMax=["max_loisirs","prime_titulaire","prime_fid_tiers","prime_gvt_tiers"].includes(seg.tarif);
-              const segColor=isNE?C.amber:(c?c.color:C.red);
+              const segColor=isNE?P.amber:(c?c.color:P.red);
               const availableCarriers=isG30?CARRIERS.filter(c=>G30_CARRIER_IDS.includes(c.id)):CARRIERS;
 
-              let segBg=C.surface2,segBorder=C.border;
+              let segBg=P.surface2,segBorder=P.border;
               if(isNE){segBg="#FFF3E0";segBorder="#F0C090";}
-              else if(seg.tarif==="prime_titulaire"){segBg=C.blueLight;segBorder=C.blueMid;}
+              else if(seg.tarif==="prime_titulaire"){segBg=P.blueLight;segBorder=P.blueMid;}
               else if(seg.tarif==="prime_fid_tiers"){segBg="#F0EAFF";segBorder="#C8A8F0";}
               else if(seg.tarif==="prime_gvt_tiers"){segBg="#F8EAFF";segBorder="#D0A0E0";}
-              else if(isMax){segBg=C.greenLight;segBorder="#A8DFC0";}
+              else if(isMax){segBg=P.greenLight;segBorder="#A8DFC0";}
 
               return(
                 <div key={seg.id} className="seg-card seg-anim" style={{
@@ -1473,13 +1467,13 @@ function App(){
                         ?<select aria-label="Transporteur" value={seg.carrier} onChange={e=>updateSegment(seg.id,"carrier",e.target.value)} style={{...sel}}>
                           {availableCarriers.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}
                         </select>
-                        :<select aria-label="Transporteur" value={seg.carrier} onChange={e=>updateSegment(seg.id,"carrier",e.target.value)} style={{...sel,borderColor:isNE?"#F0C090":C.border,background:isNE?"#FFF3E0":"white"}}>
+                        :<select aria-label="Transporteur" value={seg.carrier} onChange={e=>updateSegment(seg.id,"carrier",e.target.value)} style={{...sel,borderColor:isNE?"#F0C090":P.border,background:isNE?"#FFF3E0":"white"}}>
                           <optgroup label="✅ Éligibles BD30">{CARRIERS.filter(c=>c.group==="eligible").map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</optgroup>
                           <optgroup label="❌ Hors périmètre BD30">{CARRIERS.filter(c=>c.group==="non_eligible").map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</optgroup>
                         </select>
                       }
                       {isNE&&(
-                        <div style={{fontSize:11,color:seg.carrier==="trsi"?C.orange:C.amber,marginTop:5,lineHeight:1.6,fontWeight:seg.carrier==="trsi"?600:400}}>
+                        <div style={{fontSize:11,color:seg.carrier==="trsi"?P.orange:P.amber,marginTop:5,lineHeight:1.6,fontWeight:seg.carrier==="trsi"?600:400}}>
                           {seg.carrier==="trsi"
                             ?<>⚠️ TRSI — Billet Combiné (2 contrats distincts). Hors périmètre BD30. G30 sur segment TGV/INT uniquement. Trains n° 17466–17499 · Marseille–Toulon–Nice.</>
                             :<>⚠️ Hors périmètre BD30 — aucune indemnisation sur ce segment.{seg.carrier==="coop_int"?" Bi-segment: G30 sur segment TGV/filiale seul.":""}{seg.carrier==="ter_autocar"?" Autres segments compensables via G30.":""}</>
@@ -1492,7 +1486,7 @@ function App(){
                     <div>
                       <label className="field-label">
                         Prix (€)
-                        {isMax&&<span style={{color:["prime_titulaire","prime_fid_tiers","prime_gvt_tiers"].includes(seg.tarif)?C.blue:C.green,marginLeft:3}}>
+                        {isMax&&<span style={{color:["prime_titulaire","prime_fid_tiers","prime_gvt_tiers"].includes(seg.tarif)?P.blue:P.green,marginLeft:3}}>
                           {["prime_titulaire","prime_fid_tiers","prime_gvt_tiers"].includes(seg.tarif)?"— Prime":"— 0€"}
                         </span>}
                       </label>
@@ -1502,14 +1496,14 @@ function App(){
                         value={isMax?"0":seg.price}
                         onChange={e=>updateSegment(seg.id,"price",e.target.value)}
                         disabled={isNE||isMax}
-                        style={{...inp,background:(isNE||isMax)?C.surface2:"white",color:(isNE||isMax)?C.textMuted:C.text,fontFamily:"'Inter','DM Sans',sans-serif",fontWeight:600,fontSize:14}}
+                        style={{...inp,background:(isNE||isMax)?P.surface2:"white",color:(isNE||isMax)?P.textMuted:P.text,fontFamily:"'Inter','DM Sans',sans-serif",fontWeight:600,fontSize:14}}
                       />
                     </div>
 
                     {/* Supprimer */}
                     {segments.length>1
                       ?<button onClick={()=>removeSegment(seg.id)} style={{
-                          background:"rgba(0,0,0,0.06)",border:"none",color:C.textMuted,
+                          background:"rgba(0,0,0,0.06)",border:"none",color:P.textMuted,
                           borderRadius:"50%",width:28,height:28,cursor:"pointer",
                           marginTop:20,fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",
                         }}>✕</button>
@@ -1525,9 +1519,9 @@ function App(){
                         {TARIFS.map(t=>(
                           <label key={t.id} className={`tarif-pill${seg.tarif===t.id?" active":""}`}
                             style={{
-                              borderColor:seg.tarif===t.id?t.color+"70":C.border,
+                              borderColor:seg.tarif===t.id?t.color+"70":P.border,
                               background:seg.tarif===t.id?`${t.color}10`:"white",
-                              color:seg.tarif===t.id?t.color:C.textMid,
+                              color:seg.tarif===t.id?t.color:P.textMid,
                             }}>
                             <input type="radio" name={`tarif-${seg.id}`} value={t.id}
                               checked={seg.tarif===t.id}
@@ -1538,7 +1532,7 @@ function App(){
                           </label>
                         ))}
                       </div>
-                      <div style={{fontSize:11.5,color:C.textMuted,lineHeight:1.5}}>{tarifInfo.desc}</div>
+                      <div style={{fontSize:11.5,color:P.textMuted,lineHeight:1.5}}>{tarifInfo.desc}</div>
                     </div>
                   )}
                 </div>
@@ -1565,7 +1559,7 @@ function App(){
                 <label className="field-label" style={{minHeight:22,display:"flex",alignItems:"flex-end",paddingBottom:4}}>Arrivée réelle</label>
                 {isMobile
                   ?<TimePicker value={heureReel} onChange={setHeureReel} highlight={!!(timeDelay!==null&&timeDelay>0)}/>
-                  :<input type="time" value={heureReel} onChange={e=>setHeureReel(e.target.value)} style={{...inp,fontSize:18,fontWeight:700,padding:"10px 12px",borderColor:timeDelay!==null&&timeDelay>0?C.red:C.border,color:timeDelay!==null&&timeDelay>0?C.red:"inherit"}}/>
+                  :<input type="time" value={heureReel} onChange={e=>setHeureReel(e.target.value)} style={{...inp,fontSize:18,fontWeight:700,padding:"10px 12px",borderColor:timeDelay!==null&&timeDelay>0?P.red:P.border,color:timeDelay!==null&&timeDelay>0?P.red:"inherit"}}/>
                 }
               </div>
             </div>
@@ -1574,14 +1568,14 @@ function App(){
             {timeDelay!==null&&(
               <div style={{
                 marginBottom:14,padding:"12px 16px",borderRadius:10,
-                background:timeDelay===0?C.greenLight:timeDelay<30?C.amberLight:C.redLight,
-                border:`1.5px solid ${timeDelay===0?"#A0E0B8":timeDelay<30?C.amberMid:C.redMid}`,
+                background:timeDelay===0?P.greenLight:timeDelay<30?P.amberLight:P.redLight,
+                border:`1.5px solid ${timeDelay===0?"#A0E0B8":timeDelay<30?P.amberMid:P.redMid}`,
                 display:"flex",alignItems:"center",justifyContent:"space-between",
               }}>
-                <span style={{fontSize:12,color:C.textMid,fontWeight:500}}>Retard calculé :</span>
+                <span style={{fontSize:12,color:P.textMid,fontWeight:500}}>Retard calculé :</span>
                 <span style={{
                   fontSize:22,fontWeight:800,
-                  color:timeDelay===0?C.green:timeDelay<30?C.amber:C.red,
+                  color:timeDelay===0?P.green:timeDelay<30?P.amber:P.red,
                   fontVariantNumeric:"tabular-nums",
                 }}>
                   {timeDelay===0?"✓ À l'heure":`${timeDelay} min${timeDelay>=60?` (${Math.floor(timeDelay/60)}h${timeDelay%60>0?String(timeDelay%60).padStart(2,"0")+"min":""})`:""}` }
@@ -1593,13 +1587,13 @@ function App(){
 
             {/* Boutons rapides — tranches barème */}
             <div style={{marginBottom:12}}>
-              <div style={{fontSize:11,fontWeight:700,color:C.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:7}}>Tranches du barème</div>
+              <div style={{fontSize:11,fontWeight:700,color:P.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:7}}>Tranches du barème</div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
                 {[
-                  {label:"< 30 min",      sub:"Non éligible",    value:15,  color:C.textMuted, bg:C.surface2,    border:C.border},
-                  {label:"30 – 59 min",   sub:"25% ou 5€ BAD",   value:30,  color:C.red,       bg:"#FDE8EE",     border:C.redMid},
-                  {label:"60 – 119 min",  sub:"25% ou 5€ BAD",   value:60,  color:C.red,       bg:"#FDE8EE",     border:C.redMid},
-                  {label:"120 – 179 min", sub:"50% ou 5€ BAD",   value:120, color:C.red,       bg:"#FDE8EE",     border:C.redMid},
+                  {label:"< 30 min",      sub:"Non éligible",    value:15,  color:P.textMuted, bg:P.surface2,    border:P.border},
+                  {label:"30 – 59 min",   sub:"25% ou 5€ BAD",   value:30,  color:P.red,       bg:"#FDE8EE",     border:P.redMid},
+                  {label:"60 – 119 min",  sub:"25% ou 5€ BAD",   value:60,  color:P.red,       bg:"#FDE8EE",     border:P.redMid},
+                  {label:"120 – 179 min", sub:"50% ou 5€ BAD",   value:120, color:P.red,       bg:"#FDE8EE",     border:P.redMid},
                   {label:"180 – 239 min", sub:"75% ou 10€ BAD",  value:180, color:"#7A0032",   bg:"#F5C0D0",     border:"#E080A0"},
                   {label:"≥ 240 min",     sub:"75% ou 20€ BAD",  value:240, color:"#7A0032",   bg:"#F5C0D0",     border:"#E080A0"},
                 ].map(({label,sub,value,color,bg,border})=>{
@@ -1625,7 +1619,7 @@ function App(){
                         animation:active?"pulseGlow .55s ease-out":"none",
                       }}>
                       <div style={{fontSize:12,fontWeight:700,color:active?"white":color,lineHeight:1.2}}>{label}</div>
-                      <div style={{fontSize:10,color:active?"rgba(255,255,255,.7)":C.textMuted,marginTop:2}}>{sub}</div>
+                      <div style={{fontSize:10,color:active?"rgba(255,255,255,.7)":P.textMuted,marginTop:2}}>{sub}</div>
                     </button>
                   );
                 })}
@@ -1634,12 +1628,12 @@ function App(){
 
             {/* Slider — secondaire */}
             <details style={{marginBottom:14}}>
-              <summary style={{fontSize:11,color:C.textMuted,cursor:"pointer",userSelect:"none",marginBottom:8,fontWeight:600}}>
+              <summary style={{fontSize:11,color:P.textMuted,cursor:"pointer",userSelect:"none",marginBottom:8,fontWeight:600}}>
                 ▸ Ajuster précisément (slider)
               </summary>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8,marginTop:8}}>
-                <span style={{fontSize:12,color:C.textMid,fontWeight:600}}>Retard manuel</span>
-                <span style={{fontSize:20,fontWeight:800,color:timeDelay!==null?C.textMuted:C.red,fontVariantNumeric:"tabular-nums"}}>{fmtMin(sliderDelay)}</span>
+                <span style={{fontSize:12,color:P.textMid,fontWeight:600}}>Retard manuel</span>
+                <span style={{fontSize:20,fontWeight:800,color:timeDelay!==null?P.textMuted:P.red,fontVariantNumeric:"tabular-nums"}}>{fmtMin(sliderDelay)}</span>
               </div>
               <input type="range" min="0" max="360" step="1"
                 aria-label="Retard en minutes (0 à 360)"
@@ -1648,20 +1642,20 @@ function App(){
                 onChange={e=>{setSliderDelay(Number(e.target.value));setHeureTheo("");setHeureReel("");}}
                 style={{opacity:timeDelay!==null?0.35:1,marginBottom:6}}
               />
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:C.textMuted}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:P.textMuted}}>
                 {[0,60,120,180,240,300,360].map(v=><span key={v}>{v===0?"0":`${v}'`}</span>)}
               </div>
             </details>
 
             {timeDelay!==null&&(
-              <div style={{fontSize:11,color:C.textMuted,marginBottom:12,fontStyle:"italic"}}>
+              <div style={{fontSize:11,color:P.textMuted,marginBottom:12,fontStyle:"italic"}}>
                 🕐 Retard calculé depuis {heureTheo} → {heureReel}. Utilisez la barre pour saisir manuellement.
               </div>
             )}
 
             {/* Rupture */}
-            <label style={{display:"flex",alignItems:"flex-start",gap:9,fontSize:12.5,cursor:"pointer",color:C.textMid}}>
-              <input type="checkbox" checked={rupture} onChange={e=>setRupture(e.target.checked)} style={{width:14,height:14,marginTop:2,accentColor:C.red}}/>
+            <label style={{display:"flex",alignItems:"flex-start",gap:9,fontSize:12.5,cursor:"pointer",color:P.textMid}}>
+              <input type="checkbox" checked={rupture} onChange={e=>setRupture(e.target.checked)} style={{width:14,height:14,marginTop:2,accentColor:P.red}}/>
               Rupture de correspondance (train de report utilisé)
             </label>
             {rupture&&(
@@ -1673,42 +1667,42 @@ function App(){
 
           {/* ── TRSI ── */}
           {segments.some(s=>s.carrier==="trsi")&&(
-            <div className="card" style={{border:`2px solid ${C.orange}`,background:C.orangeLight}}>
+            <div className="card" style={{border:`2px solid ${P.orange}`,background:P.orangeLight}}>
               <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-                <h2 className="section-title" style={{margin:0,color:C.orange}}><IconTitle icon={Icon.warn} label="TRSI — Transdev Rail Sud Inter-métropole" color={C.orange}/></h2>
-                <span style={{fontSize:11,background:"#FFD5C0",color:C.orange,padding:"2px 8px",borderRadius:10,fontWeight:700,border:`1px solid #E0A080`}}>BILLET COMBINÉ</span>
+                <h2 className="section-title" style={{margin:0,color:P.orange}}><IconTitle icon={Icon.warn} label="TRSI — Transdev Rail Sud Inter-métropole" color={P.orange}/></h2>
+                <span style={{fontSize:11,background:"#FFD5C0",color:P.orange,padding:"2px 8px",borderRadius:10,fontWeight:700,border:`1px solid #E0A080`}}>BILLET COMBINÉ</span>
               </div>
-              <div style={{fontSize:11.5,color:C.textMid,marginBottom:14,lineHeight:1.7,padding:"10px 14px",borderRadius:8,background:"#FFD5C0",border:"1px solid #E0A080"}}>
+              <div style={{fontSize:11.5,color:P.textMid,marginBottom:14,lineHeight:1.7,padding:"10px 14px",borderRadius:8,background:"#FFD5C0",border:"1px solid #E0A080"}}>
                 ⚠️ Voyages TRSI + TGV/INT = <strong>Billets Combinés</strong> (2 contrats distincts). Accord SNCF / TRSI garantit la continuité du voyage.<br/>
                 <span style={{fontSize:11.5,color:"#B06000",display:"block",marginTop:4}}>Trains : n° <strong>17466 à 17499</strong> · Marseille – Toulon – Nice</span>
               </div>
 
               {/* ── Bloc 1 : TGV/INT retardé → TRSI manqué ── */}
               <div style={{marginBottom:12}}>
-                <div style={{fontWeight:800,fontSize:12,color:C.red,marginBottom:8,padding:"6px 10px",background:"#FFEBE8",borderRadius:6,border:`1px solid #F0C0B0`}}>
+                <div style={{fontWeight:800,fontSize:12,color:P.red,marginBottom:8,padding:"6px 10px",background:"#FFEBE8",borderRadius:6,border:`1px solid #F0C0B0`}}>
                   🚄 TGV ou INT retardé / supprimé → TRSI manqué &nbsp;<span style={{fontWeight:400,fontSize:11,color:"#C03000"}}>RT 7458</span>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-                  <div style={{padding:"10px 12px",borderRadius:8,background:C.surface,border:`1.5px solid #F0C0A0`}}>
-                    <div style={{fontWeight:800,fontSize:11,color:C.red,marginBottom:5}}>Poursuite du voyage</div>
-                    <div style={{fontSize:11,lineHeight:1.75,color:C.text}}>
+                  <div style={{padding:"10px 12px",borderRadius:8,background:P.surface,border:`1.5px solid #F0C0A0`}}>
+                    <div style={{fontWeight:800,fontSize:11,color:P.red,marginBottom:5}}>Poursuite du voyage</div>
+                    <div style={{fontSize:11,lineHeight:1.75,color:P.text}}>
                       <div>Rachat billet TRSI ou SNCF</div>
-                      <div style={{color:C.red,fontWeight:700}}>⛔ Refus de prise en charge</div>
+                      <div style={{color:P.red,fontWeight:700}}>⛔ Refus de prise en charge</div>
                     </div>
                   </div>
-                  <div style={{padding:"10px 12px",borderRadius:8,background:C.surface,border:`1.5px solid #F0C0A0`}}>
-                    <div style={{fontWeight:800,fontSize:11,color:C.green,marginBottom:5}}>Renoncement au voyage</div>
-                    <div style={{fontSize:11,lineHeight:1.75,color:C.text}}>
+                  <div style={{padding:"10px 12px",borderRadius:8,background:P.surface,border:`1.5px solid #F0C0A0`}}>
+                    <div style={{fontWeight:800,fontSize:11,color:P.green,marginBottom:5}}>Renoncement au voyage</div>
+                    <div style={{fontSize:11,lineHeight:1.75,color:P.text}}>
                       <div>✅ Accord billet TGV / INT</div>
                       <div>✅ Accord TRSI (selon date RAD)</div>
-                      <div style={{fontSize:10.5,color:C.textMuted}}>Billet TRSI valable 1 journée → pas de remboursement le jour du voyage</div>
+                      <div style={{fontSize:10.5,color:P.textMuted}}>Billet TRSI valable 1 journée → pas de remboursement le jour du voyage</div>
                     </div>
                   </div>
-                  <div style={{padding:"10px 12px",borderRadius:8,background:C.surface,border:`1.5px solid #F0C0A0`}}>
-                    <div style={{fontWeight:800,fontSize:11,color:C.amber,marginBottom:5}}>Frais annexes</div>
-                    <div style={{fontSize:11,lineHeight:1.75,color:C.text}}>
+                  <div style={{padding:"10px 12px",borderRadius:8,background:P.surface,border:`1.5px solid #F0C0A0`}}>
+                    <div style={{fontWeight:800,fontSize:11,color:P.amber,marginBottom:5}}>Frais annexes</div>
+                    <div style={{fontSize:11,lineHeight:1.75,color:P.text}}>
                       <div>Dernier TRSI du jour manqué</div>
-                      <div style={{color:C.green,fontWeight:700}}>✅ Accord — hébergement en BAD</div>
+                      <div style={{color:P.green,fontWeight:700}}>✅ Accord — hébergement en BAD</div>
                     </div>
                   </div>
                 </div>
@@ -1716,31 +1710,31 @@ function App(){
 
               {/* ── Bloc 2 : TRSI retardé → TGV/INT manqué ── */}
               <div>
-                <div style={{fontWeight:800,fontSize:12,color:C.orange,marginBottom:8,padding:"6px 10px",background:"#FFF0D0",borderRadius:6,border:`1px solid ${C.amberMid}`}}>
+                <div style={{fontWeight:800,fontSize:12,color:P.orange,marginBottom:8,padding:"6px 10px",background:"#FFF0D0",borderRadius:6,border:`1px solid ${P.amberMid}`}}>
                   🚊 TRSI retardé / supprimé → TGV ou INT manqué &nbsp;<span style={{fontWeight:400,fontSize:11,color:"#A06000"}}>RT 7459</span>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-                  <div style={{padding:"10px 12px",borderRadius:8,background:C.surface,border:`1.5px solid ${C.orange}`}}>
-                    <div style={{fontWeight:800,fontSize:11,color:C.orange,marginBottom:5}}>Poursuite du voyage</div>
-                    <div style={{fontSize:11,lineHeight:1.75,color:C.text}}>
+                  <div style={{padding:"10px 12px",borderRadius:8,background:P.surface,border:`1.5px solid ${P.orange}`}}>
+                    <div style={{fontWeight:800,fontSize:11,color:P.orange,marginBottom:5}}>Poursuite du voyage</div>
+                    <div style={{fontSize:11,lineHeight:1.75,color:P.text}}>
                       <div>Rachat billet TGV / INT</div>
-                      <div style={{color:C.red,fontWeight:700}}>⛔ Refus</div>
-                      <div style={{fontSize:10.5,color:C.textMuted}}>RC00 uniquement par la gare de correspondance (refacturé à TRSI)</div>
+                      <div style={{color:P.red,fontWeight:700}}>⛔ Refus</div>
+                      <div style={{fontSize:10.5,color:P.textMuted}}>RC00 uniquement par la gare de correspondance (refacturé à TRSI)</div>
                     </div>
                   </div>
-                  <div style={{padding:"10px 12px",borderRadius:8,background:C.surface,border:`1.5px solid ${C.orange}`}}>
-                    <div style={{fontWeight:800,fontSize:11,color:C.green,marginBottom:5}}>Renoncement au voyage</div>
-                    <div style={{fontSize:11,lineHeight:1.75,color:C.text}}>
+                  <div style={{padding:"10px 12px",borderRadius:8,background:P.surface,border:`1.5px solid ${P.orange}`}}>
+                    <div style={{fontWeight:800,fontSize:11,color:P.green,marginBottom:5}}>Renoncement au voyage</div>
+                    <div style={{fontSize:11,lineHeight:1.75,color:P.text}}>
                       <div>✅ Accord billet TGV / INT</div>
                       <div>✅ Accord TRSI (selon date RAD)</div>
-                      <div style={{fontSize:10.5,color:C.textMuted}}>Billet TRSI valable 1 journée → pas de remboursement le jour du voyage</div>
+                      <div style={{fontSize:10.5,color:P.textMuted}}>Billet TRSI valable 1 journée → pas de remboursement le jour du voyage</div>
                     </div>
                   </div>
-                  <div style={{padding:"10px 12px",borderRadius:8,background:C.surface,border:`1.5px solid ${C.orange}`}}>
-                    <div style={{fontWeight:800,fontSize:11,color:C.amber,marginBottom:5}}>Frais annexes</div>
-                    <div style={{fontSize:11,lineHeight:1.75,color:C.text}}>
+                  <div style={{padding:"10px 12px",borderRadius:8,background:P.surface,border:`1.5px solid ${P.orange}`}}>
+                    <div style={{fontWeight:800,fontSize:11,color:P.amber,marginBottom:5}}>Frais annexes</div>
+                    <div style={{fontSize:11,lineHeight:1.75,color:P.text}}>
                       <div>Dernier TGV/INT du jour manqué</div>
-                      <div style={{color:C.red,fontWeight:700}}>⛔ Refus — client s'adresse à TRSI</div>
+                      <div style={{color:P.red,fontWeight:700}}>⛔ Refus — client s'adresse à TRSI</div>
                     </div>
                   </div>
                 </div>
@@ -1749,14 +1743,14 @@ function App(){
           )}
 
           {/* ── Indemnisation exceptionnelle ── */}
-          <div className="card card-anim" style={{border:`2px solid #A1006B`,background:C.surface,animationDelay:".12s"}}>
+          <div className="card card-anim" style={{border:`2px solid #A1006B`,background:P.surface,animationDelay:".12s"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-              <h2 className="section-title" style={{margin:0,color:C.amber}}><IconTitle icon={Icon.star} label="Indemnisation exceptionnelle" color={C.amber}/></h2>
-              <span style={{fontSize:11,background:"#FFF0A0",color:C.amber,padding:"2px 8px",borderRadius:10,fontWeight:700,border:`1px solid ${C.amberMid}`}}>INCIDENTS MAJEURS</span>
+              <h2 className="section-title" style={{margin:0,color:P.amber}}><IconTitle icon={Icon.star} label="Indemnisation exceptionnelle" color={P.amber}/></h2>
+              <span style={{fontSize:11,background:"#FFF0A0",color:P.amber,padding:"2px 8px",borderRadius:10,fontWeight:700,border:`1px solid ${P.amberMid}`}}>INCIDENTS MAJEURS</span>
             </div>
-            <div style={{fontSize:12,color:C.amber,marginBottom:14,lineHeight:1.65,padding:"10px 14px",background:"rgba(245,196,0,.07)",borderRadius:8,border:"1px solid rgba(161,0,107,.12)"}}>
+            <div style={{fontSize:12,color:P.amber,marginBottom:14,lineHeight:1.65,padding:"10px 14px",background:"rgba(245,196,0,.07)",borderRadius:8,border:"1px solid rgba(161,0,107,.12)"}}>
               Lors d'incidents majeurs, SNCF peut porter l'indemnisation au-delà du barème G30. S'applique sur <strong>un seul segment</strong>.<br/>
-              <span style={{fontSize:11,display:"block",marginTop:5,color:C.textMid}}>⚠️ Non applicable sur <strong>Billet Prime</strong> — traitement exclusivement via file FID AV (LT 2397).</span>
+              <span style={{fontSize:11,display:"block",marginTop:5,color:P.textMid}}>⚠️ Non applicable sur <strong>Billet Prime</strong> — traitement exclusivement via file FID AV (LT 2397).</span>
             </div>
             <label className="field-label">Niveau d'indemnisation</label>
             <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:14}}>
@@ -1764,19 +1758,19 @@ function App(){
                 <label key={lvl.id} style={{
                   display:"flex",alignItems:"center",gap:6,cursor:"pointer",
                   padding:"7px 14px",borderRadius:8,
-                  border:`1.5px solid ${exceptLevel===lvl.id?C.amberMid:C.border}`,
+                  border:`1.5px solid ${exceptLevel===lvl.id?P.amberMid:P.border}`,
                   background:exceptLevel===lvl.id?"#FFF0A0":"white",
                   fontSize:12,fontWeight:exceptLevel===lvl.id?800:400,
-                  color:exceptLevel===lvl.id?C.amber:C.textMid,transition:"all .15s",
+                  color:exceptLevel===lvl.id?P.amber:P.textMid,transition:"all .15s",
                 }}>
                   <input type="radio" name="except" value={lvl.id} checked={exceptLevel===lvl.id} onChange={()=>setExceptLevel(lvl.id)} style={{width:13,height:13}}/>
                   {lvl.label}
-                  {lvl.fixedMax&&<span style={{fontSize:11,color:C.textMuted,marginLeft:4}}>(Max: {lvl.fixedMax}€)</span>}
+                  {lvl.fixedMax&&<span style={{fontSize:11,color:P.textMuted,marginLeft:4}}>(Max: {lvl.fixedMax}€)</span>}
                 </label>
               ))}
             </div>
             {exceptLevel!=="none"&&(
-              <div style={{borderTop:`1px dashed ${C.amberMid}`,paddingTop:12}}>
+              <div style={{borderTop:`1px dashed ${P.amberMid}`,paddingTop:12}}>
                 <label className="field-label">Segment concerné</label>
                 <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
                   {segments.map((seg,idx)=>{
@@ -1788,28 +1782,28 @@ function App(){
                         display:"flex",alignItems:"center",gap:7,
                         cursor:isEligible?"pointer":"not-allowed",
                         padding:"8px 14px",borderRadius:8,
-                        border:`1.5px solid ${isSelected?C.amberMid:isEligible?C.border:"#F0E0C0"}`,
+                        border:`1.5px solid ${isSelected?P.amberMid:isEligible?P.border:"#F0E0C0"}`,
                         background:isSelected?"#FFF0A0":isEligible?"white":"#FAF8F0",
                         opacity:isEligible?1:.5,fontSize:12,
                         fontWeight:isSelected?700:400,
-                        color:isSelected?C.amber:isEligible?C.textMid:C.textMuted,
+                        color:isSelected?P.amber:isEligible?P.textMid:P.textMuted,
                       }}>
                         <input type="radio" name="except_seg" disabled={!isEligible} checked={isSelected}
                           onChange={()=>isEligible&&setExceptSegmentId(seg.id)} style={{width:13,height:13}}/>
-                        <span style={{width:20,height:20,borderRadius:"50%",background:isEligible?(c?c.color:C.red):"#DDD",color:"white",display:"inline-flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:11,flexShrink:0}}>{idx+1}</span>
+                        <span style={{width:20,height:20,borderRadius:"50%",background:isEligible?(c?c.color:P.red):"#DDD",color:"white",display:"inline-flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:11,flexShrink:0}}>{idx+1}</span>
                         <span>{c?c.label:"—"}</span>
                       </label>
                     );
                   })}
                 </div>
-                {exceptSegmentId===null&&<div style={{fontSize:11,color:C.amber,marginTop:8}}>⚠️ Sélectionnez le segment concerné.</div>}
+                {exceptSegmentId===null&&<div style={{fontSize:11,color:P.amber,marginTop:8}}>⚠️ Sélectionnez le segment concerné.</div>}
               </div>
             )}
           </div>
 
           {/* ── Résultats ── */}
           {computed&&(
-            <div className="card-anim" style={{background:C.surface,borderRadius:14,border:`1px solid ${C.borderMid}`,overflow:"hidden",boxShadow:"0 6px 28px rgba(0,0,0,.12)"}}>
+            <div className="card-anim" style={{background:P.surface,borderRadius:14,border:`1px solid ${P.borderMid}`,overflow:"hidden",boxShadow:"0 6px 28px rgba(0,0,0,.12)"}}>
 
               {/* En-tête résultat */}
               <div style={{
@@ -1855,21 +1849,21 @@ function App(){
                   const exceptBonus=isExceptSeg?computed.exceptBonus:0;
                   const totalAmt=r.amount+exceptBonus;
                   return(
-                    <div key={r.id} className="result-row" style={{background:isExceptSeg?C.amberLight:"transparent",borderRadius:isExceptSeg?8:0}}>
-                      <div style={{width:28,height:28,borderRadius:"50%",background:r.eligible?(r.carrier?r.carrier.color:C.red):"#DDD",color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:12,flexShrink:0}}>{idx+1}</div>
+                    <div key={r.id} className="result-row" style={{background:isExceptSeg?P.amberLight:"transparent",borderRadius:isExceptSeg?8:0}}>
+                      <div style={{width:28,height:28,borderRadius:"50%",background:r.eligible?(r.carrier?r.carrier.color:P.red):"#DDD",color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:12,flexShrink:0}}>{idx+1}</div>
                       <div>
                         <div style={{fontWeight:600,fontSize:12.5,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                           {r.carrier?r.carrier.label:r.carrier}
                           <TarifPill tarif={r.tarif}/>
-                          {isExceptSeg&&<span style={{fontSize:11,background:"#FFF0A0",color:C.amber,padding:"1px 7px",borderRadius:10,fontWeight:700,border:`1px solid ${C.amberMid}`}}>⭐ Except.</span>}
+                          {isExceptSeg&&<span style={{fontSize:11,background:"#FFF0A0",color:P.amber,padding:"1px 7px",borderRadius:10,fontWeight:700,border:`1px solid ${P.amberMid}`}}>⭐ Except.</span>}
                         </div>
-                        <div style={{fontSize:11,color:C.textMid,marginTop:3,display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+                        <div style={{fontSize:11,color:P.textMid,marginTop:3,display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
                           {r.eligible
                             ?(r.tarif==="max_loisirs"?"Abonnés Max / Forfait — 0€":r.tarif==="prime_titulaire"?"Billet Prime — Titulaire":r.tarif==="prime_fid_tiers"?"Billet Prime — FID + Tiers":r.tarif==="prime_gvt_tiers"?"Billet Prime — GVT + Tiers":`${r.price.toFixed(2)} €`)
                             :<em>Hors périmètre BD30</em>
                           }
                           {ri&&ri.type&&r.eligible&&(
-                            <Badge color={r.tarif==="prime_titulaire"?C.blue:r.tarif==="prime_fid_tiers"?C.purple:r.tarif==="prime_gvt_tiers"?C.purple:ri.rate>0||ri.fixedAmount?C.red:C.textMuted}>
+                            <Badge color={r.tarif==="prime_titulaire"?P.blue:r.tarif==="prime_fid_tiers"?P.purple:r.tarif==="prime_gvt_tiers"?P.purple:ri.rate>0||ri.fixedAmount?P.red:P.textMuted}>
                               {ri.type}
                             </Badge>
                           )}
@@ -1880,35 +1874,35 @@ function App(){
                         {r.eligible&&ri?(
                           ri.dual==="fid_tiers"
                             ?<div style={{display:"flex",flexDirection:"column",gap:3}}>
-                              <div style={{background:"#DDE6FF",color:C.blue,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.points} pts</div>
-                              <div style={{background:C.purpleLight,color:C.purple,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.fixedAmount} € BAD</div>
+                              <div style={{background:"#DDE6FF",color:P.blue,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.points} pts</div>
+                              <div style={{background:P.purpleLight,color:P.purple,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.fixedAmount} € BAD</div>
                             </div>
                             :ri.dual==="gvt_tiers"
                             ?<div style={{display:"flex",flexDirection:"column",gap:3}}>
-                              <div style={{background:C.purpleLight,color:C.purple,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.fixedAmount} € BAD</div>
-                              <div style={{background:C.purpleLight,color:C.purple,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.fixedAmount} € BAD</div>
+                              <div style={{background:P.purpleLight,color:P.purple,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.fixedAmount} € BAD</div>
+                              <div style={{background:P.purpleLight,color:P.purple,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.fixedAmount} € BAD</div>
                             </div>
                             :ri.points!==null
-                            ?<div style={{background:C.blueLight,color:C.blue,fontWeight:800,fontSize:13,padding:"4px 8px",borderRadius:6,textAlign:"center",lineHeight:1.2,fontVariantNumeric:"tabular-nums"}}>{ri.points}<br/><span style={{fontSize:11,fontWeight:600}}>pts</span></div>
+                            ?<div style={{background:P.blueLight,color:P.blue,fontWeight:800,fontSize:13,padding:"4px 8px",borderRadius:6,textAlign:"center",lineHeight:1.2,fontVariantNumeric:"tabular-nums"}}>{ri.points}<br/><span style={{fontSize:11,fontWeight:600}}>pts</span></div>
                             :ri.fixedAmount!==null
-                            ?<AmountPill color={C.green}>{ri.fixedAmount} €</AmountPill>
-                            :<div style={{background:ri.rate>0?C.redLight:C.surface2,color:ri.rate>0?C.red:C.textMuted,fontWeight:800,fontSize:16,padding:"4px 8px",borderRadius:6,fontVariantNumeric:"tabular-nums"}}>{ri.rate}%</div>
-                        ):<div style={{color:C.textMuted,fontSize:14}}>—</div>}
+                            ?<AmountPill color={P.green}>{ri.fixedAmount} €</AmountPill>
+                            :<div style={{background:ri.rate>0?P.redLight:P.surface2,color:ri.rate>0?P.red:P.textMuted,fontWeight:800,fontSize:16,padding:"4px 8px",borderRadius:6,fontVariantNumeric:"tabular-nums"}}>{ri.rate}%</div>
+                        ):<div style={{color:P.textMuted,fontSize:14}}>—</div>}
                       </div>
                       {/* Montant */}
                       <div style={{fontSize:13,fontWeight:700,textAlign:"right"}}>
                         {r.eligible?(
                           r.tarif==="prime_titulaire"
-                            ?<span style={{fontSize:11,color:C.blue,fontWeight:600}}>Voir pts →</span>
+                            ?<span style={{fontSize:11,color:P.blue,fontWeight:600}}>Voir pts →</span>
                             :r.tarif==="prime_fid_tiers"
                             ?<div style={{display:"flex",flexDirection:"column",gap:2,alignItems:"flex-end"}}>
-                              <span style={{fontSize:11,color:C.blue,fontWeight:700}}>FID : pts ✓</span>
-                              <span style={{fontSize:12,color:C.purple,fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{ri&&ri.fixedAmount?ri.fixedAmount:0} € tiers</span>
+                              <span style={{fontSize:11,color:P.blue,fontWeight:700}}>FID : pts ✓</span>
+                              <span style={{fontSize:12,color:P.purple,fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{ri&&ri.fixedAmount?ri.fixedAmount:0} € tiers</span>
                             </div>
                             :r.tarif==="prime_gvt_tiers"
                             ?<div style={{display:"flex",flexDirection:"column",gap:2,alignItems:"flex-end"}}>
-                              <span style={{fontSize:11,color:C.purple,fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{ri&&ri.fixedAmount?ri.fixedAmount:0} € GVT</span>
-                              <span style={{fontSize:11,color:C.purple,fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{ri&&ri.fixedAmount?ri.fixedAmount:0} € tiers</span>
+                              <span style={{fontSize:11,color:P.purple,fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{ri&&ri.fixedAmount?ri.fixedAmount:0} € GVT</span>
+                              <span style={{fontSize:11,color:P.purple,fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{ri&&ri.fixedAmount?ri.fixedAmount:0} € tiers</span>
                             </div>
                             :<span style={{fontVariantNumeric:"tabular-nums lining-nums",fontFamily:"'Inter','DM Sans',sans-serif",fontWeight:700,fontSize:15}}>{totalAmt.toFixed(2)} €</span>
                         ):"—"}
@@ -1925,7 +1919,7 @@ function App(){
                   border:`1.5px solid #F0A060`,
                 }}>
                   <div style={{
-                    background:`linear-gradient(135deg,#8B3500,${C.orange})`,
+                    background:`linear-gradient(135deg,#8B3500,${P.orange})`,
                     padding:"9px 14px",color:"white",fontWeight:700,fontSize:12,
                     display:"flex",alignItems:"center",gap:8,
                   }}>
@@ -1942,14 +1936,14 @@ function App(){
                     <div style={{display:"flex",flexDirection:"column",gap:5}}>
                       <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
                         <span style={{
-                          flexShrink:0,background:C.green,color:"white",
+                          flexShrink:0,background:P.green,color:"white",
                           borderRadius:20,padding:"1px 8px",fontSize:11,fontWeight:700,marginTop:1,
                         }}>✓ À prendre</span>
                         <span>Le retard enregistré à l'arrivée <strong>du train éligible</strong> (TGV INOUI, Intercités…), tel qu'affiché en temps réel ou dans les systèmes SNCF.</span>
                       </div>
                       <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
                         <span style={{
-                          flexShrink:0,background:C.red,color:"white",
+                          flexShrink:0,background:P.red,color:"white",
                           borderRadius:20,padding:"1px 8px",fontSize:11,fontWeight:700,marginTop:1,
                         }}>✗ À exclure</span>
                         <span>Le retard global calculé sur la <strong>durée totale du voyage</strong> intégrant l'acheminement via un transporteur hors périmètre ou un train de report.</span>
@@ -1969,18 +1963,18 @@ function App(){
               {/* Double indemnisation Prime */}
               {computed.results.some(r=>r.tarif==="prime_fid_tiers"||r.tarif==="prime_gvt_tiers")&&(
                 <div style={{margin:"0 12px 12px",borderRadius:10,overflow:"hidden",border:`1.5px solid #C8A8F0`}}>
-                  <div style={{background:C.purple,padding:"9px 14px",color:"white",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:8}}>
+                  <div style={{background:P.purple,padding:"9px 14px",color:"white",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:8}}>
                     <span style={{fontSize:16}}>⚠️</span> Double indemnisation Billet Prime — Procédure LT 2397
                   </div>
-                  <div style={{padding:"12px 14px",background:C.purpleLight,fontSize:11.5,lineHeight:1.8,color:C.textMid}}>
-                    {computed.results.some(r=>r.tarif==="prime_fid_tiers")&&<div style={{marginBottom:8}}><strong style={{color:C.purple}}>🔵 FID + Tiers :</strong> FID → points · Tiers → BAD. 2 demandes distinctes à créer.</div>}
-                    {computed.results.some(r=>r.tarif==="prime_gvt_tiers")&&<div><strong style={{color:C.purple}}>🟣 GVT + Tiers :</strong> GVT → BAD · Tiers → BAD. 2 demandes distinctes à créer.</div>}
+                  <div style={{padding:"12px 14px",background:P.purpleLight,fontSize:11.5,lineHeight:1.8,color:P.textMid}}>
+                    {computed.results.some(r=>r.tarif==="prime_fid_tiers")&&<div style={{marginBottom:8}}><strong style={{color:P.purple}}>🔵 FID + Tiers :</strong> FID → points · Tiers → BAD. 2 demandes distinctes à créer.</div>}
+                    {computed.results.some(r=>r.tarif==="prime_gvt_tiers")&&<div><strong style={{color:P.purple}}>🟣 GVT + Tiers :</strong> GVT → BAD · Tiers → BAD. 2 demandes distinctes à créer.</div>}
                   </div>
                 </div>
               )}
 
               {/* Footer résultat */}
-              <div style={{background:C.surface2,borderTop:`1px solid ${C.border}`,padding:"11px 20px",fontSize:11.5,color:C.textMuted,lineHeight:1.8}}>
+              <div style={{background:P.surface2,borderTop:`1px solid ${P.border}`,padding:"11px 20px",fontSize:11.5,color:P.textMuted,lineHeight:1.8}}>
                 Seuil minimum <strong>4€</strong> · BAD = Bon d'Achat Dématérialisé · Abonnés Max / Forfaits : montants fixes · Billet Prime : points fidélité (LT 2397)
               </div>
             </div>
@@ -1995,8 +1989,8 @@ function App(){
             const infoOpen=openFraisCards.has("fraisInfo");
             const toggleInfo=()=>setOpenFraisCards(prev=>{const n=new Set(prev);n.has("fraisInfo")?n.delete("fraisInfo"):n.add("fraisInfo");return n;});
             return(
-              <div style={{background:C.surface,borderRadius:16,border:`1.5px solid ${C.blue}`,overflow:"hidden",marginBottom:12,boxShadow:"0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.06)"}}>
-                <button onClick={toggleInfo} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 18px",background:`linear-gradient(135deg,#002B7A,${C.blue})`,border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+              <div style={{background:P.surface,borderRadius:16,border:`1.5px solid ${P.blue}`,overflow:"hidden",marginBottom:12,boxShadow:"0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.06)"}}>
+                <button onClick={toggleInfo} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 18px",background:`linear-gradient(135deg,#002B7A,${P.blue})`,border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
                   <span style={{display:"flex",alignItems:"center",gap:8,color:"white",fontWeight:700,fontSize:13}}>
                     <span>ℹ️</span> Frais annexes (§09) — Types acceptés par SNCF Voyageurs sur justificatifs
                   </span>
@@ -2012,9 +2006,9 @@ function App(){
                         {icon:"🍽️",title:"Restauration",text:"À partir de 60 min de retard et si pas de distribution de panier repas"},
                         {icon:"🚌",title:"Transport",text:"Autocar, autobus, taxi pour se rendre à l'hôtel/destination et en revenir, ou rachat de billets"},
                       ].map(({icon,title,text})=>(
-                        <div key={title} style={{padding:"10px 12px",borderRadius:10,background:C.blueLight,border:`1.5px solid ${C.blueMid}`}}>
-                          <div style={{fontSize:11,fontWeight:800,color:C.blue,marginBottom:5}}>{icon} {title}</div>
-                          <div style={{fontSize:11,color:C.text,lineHeight:1.6}}>{text}</div>
+                        <div key={title} style={{padding:"10px 12px",borderRadius:10,background:P.blueLight,border:`1.5px solid ${P.blueMid}`}}>
+                          <div style={{fontSize:11,fontWeight:800,color:P.blue,marginBottom:5}}>{icon} {title}</div>
+                          <div style={{fontSize:11,color:P.text,lineHeight:1.6}}>{text}</div>
                         </div>
                       ))}
                     </div>
@@ -2040,13 +2034,13 @@ function App(){
                     <span style={{fontSize:18}}>🚌</span>
                     <span style={{fontSize:13,fontWeight:700,color:"#8A5200"}}>Billets combinés avec Transdev (TRSI)</span>
                   </span>
-                  <span className={`acc-chevron${open?" open":""}`} style={{color:C.textMuted}}>
+                  <span className={`acc-chevron${open?" open":""}`} style={{color:P.textMuted}}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                   </span>
                 </button>
                 {open&&(
                   <div style={{padding:"16px 18px"}}>
-                    <div style={{fontSize:12,color:C.textMid,marginBottom:14,fontStyle:"italic"}}>
+                    <div style={{fontSize:12,color:P.textMid,marginBottom:14,fontStyle:"italic"}}>
                       Applicable uniquement aux billets combinés TGV/INT + TRSI. Le billet TRSI est valable toute la journée.
                     </div>
                     <div style={{overflowX:"auto"}}>
@@ -2065,10 +2059,10 @@ function App(){
                             ["Frais d'hébergement — dernier TRSI du jour manqué","accord","Accord (BAD)"],
                           ].map(([situation,type,label],i)=>{
                             const rowBg=i%2===0?"white":"#FAFAFA";
-                            const bc=type==="accord"?{bg:C.greenLight,text:C.green,border:"#60C090"}:type==="refus"?{bg:"#FFF0F0",text:"#B00020",border:"#F0A0A0"}:{bg:"#FFF8E0",text:"#8A5200",border:"#F5C96A"};
+                            const bc=type==="accord"?{bg:P.greenLight,text:P.green,border:"#60C090"}:type==="refus"?{bg:"#FFF0F0",text:"#B00020",border:"#F0A0A0"}:{bg:"#FFF8E0",text:"#8A5200",border:"#F5C96A"};
                             return(
-                              <tr key={i} style={{background:rowBg,borderBottom:`1px solid ${C.border}`}}>
-                                <td style={{padding:"10px 12px",color:C.text,lineHeight:1.5}}>{situation}</td>
+                              <tr key={i} style={{background:rowBg,borderBottom:`1px solid ${P.border}`}}>
+                                <td style={{padding:"10px 12px",color:P.text,lineHeight:1.5}}>{situation}</td>
                                 <td style={{padding:"10px 12px",textAlign:"center"}}>
                                   <span style={{display:"inline-block",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:700,background:bc.bg,color:bc.text,border:`1px solid ${bc.border}`}}>{label}</span>
                                 </td>
@@ -2078,7 +2072,7 @@ function App(){
                         </tbody>
                       </table>
                     </div>
-                    <div style={{marginTop:10,fontSize:11,color:C.textMuted,fontStyle:"italic",lineHeight:1.6}}>
+                    <div style={{marginTop:10,fontSize:11,color:P.textMuted,fontStyle:"italic",lineHeight:1.6}}>
                       * Le billet TRSI est valable toute la journée — pas de remboursement possible le jour même du voyage.
                     </div>
                   </div>
@@ -2088,7 +2082,7 @@ function App(){
           </div>
 
           {/* ── 2. Situation perturbée — Éligibilité des frais ── */}
-          <div className="card" style={{padding:0,overflow:"hidden",borderColor:C.blue,borderWidth:1.5}}>
+          <div className="card" style={{padding:0,overflow:"hidden",borderColor:P.blue,borderWidth:1.5}}>
             {(()=>{
               const open=openFraisCards.has("sp");
               const toggle=()=>setOpenFraisCards(prev=>{const n=new Set(prev);n.has("sp")?n.delete("sp"):n.add("sp");return n;});
@@ -2115,12 +2109,12 @@ function App(){
               const needCos=spAvis==="j1h00"||spAvis==="apresH00"||spAvis==="inopinee";
               const showAvisFlow=spRenoncement==="non";
               return(<>
-                <button onClick={toggle} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left",borderBottom:open?`1px solid ${C.blueMid}`:"none"}}>
+                <button onClick={toggle} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left",borderBottom:open?`1px solid ${P.blueMid}`:"none"}}>
                   <span style={{display:"flex",alignItems:"center",gap:9}}>
                     <span style={{fontSize:18}}>🚨</span>
-                    <span style={{fontSize:13,fontWeight:700,color:C.blue}}>Situation perturbée — Éligibilité des frais</span>
+                    <span style={{fontSize:13,fontWeight:700,color:P.blue}}>Situation perturbée — Éligibilité des frais</span>
                   </span>
-                  <span className={`acc-chevron${open?" open":""}`} style={{color:C.textMuted}}>
+                  <span className={`acc-chevron${open?" open":""}`} style={{color:P.textMuted}}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                   </span>
                 </button>
@@ -2142,9 +2136,9 @@ function App(){
                             <button key={v} onClick={()=>{setSpRenoncement(v);setSpAvis("");setSpCos("");}} style={{
                               flex:1,padding:"9px 14px",borderRadius:10,fontFamily:"inherit",fontSize:12,
                               fontWeight:spRenoncement===v?700:500,cursor:"pointer",
-                              border:`1.5px solid ${spRenoncement===v?(v==="oui"?C.purple:C.blue):C.border}`,
+                              border:`1.5px solid ${spRenoncement===v?(v==="oui"?P.purple:P.blue):P.border}`,
                               background:spRenoncement===v?(v==="oui"?"#F5EEFF":"#EBF3FF"):"white",
-                              color:spRenoncement===v?(v==="oui"?C.purple:C.blue):C.textMid
+                              color:spRenoncement===v?(v==="oui"?P.purple:P.blue):P.textMid
                             }}>{l}</button>
                           ))}
                         </div>
@@ -2152,14 +2146,14 @@ function App(){
                     )}
                     {verdict&&verdict.type==="renoncement"&&(
                       <div style={{borderRadius:12,padding:"14px 16px",background:"#F5EEFF",border:"1.5px solid #C89AE0",marginTop:4}}>
-                        <div style={{fontWeight:800,fontSize:13,color:C.purple,marginBottom:10}}>✅ Renoncement au voyage — Remboursement intégral</div>
+                        <div style={{fontWeight:800,fontSize:13,color:P.purple,marginBottom:10}}>✅ Renoncement au voyage — Remboursement intégral</div>
                         <div style={{fontSize:12,color:"#5A2D80",lineHeight:1.7,marginBottom:10}}>Remboursement intégral du billet, y compris les billets <strong>NE / NR</strong>.</div>
-                        <div style={{padding:"10px 14px",borderRadius:10,background:C.surface,border:"1px solid #D4B0F0"}}>
-                          <div style={{fontWeight:700,fontSize:11,color:C.purple,marginBottom:8,textTransform:"uppercase",letterSpacing:.5}}>🎫 Barème particulier — Billets Prime GVT / Exit (en BAD uniquement)</div>
+                        <div style={{padding:"10px 14px",borderRadius:10,background:P.surface,border:"1px solid #D4B0F0"}}>
+                          <div style={{fontWeight:700,fontSize:11,color:P.purple,marginBottom:8,textTransform:"uppercase",letterSpacing:.5}}>🎫 Barème particulier — Billets Prime GVT / Exit (en BAD uniquement)</div>
                           {[["Prime Promo","40 €/trajet/voyageur"],["Billet Prime 2nde","40 €/trajet/voyageur"],["Billet Prime 1ère","50 €/trajet/voyageur"]].map(([type,montant])=>(
                             <div key={type} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:"1px solid #EDE0FF"}}>
                               <span style={{fontSize:12,color:"#5A2D80",fontWeight:500}}>{type}</span>
-                              <span style={{fontSize:13,color:C.purple,fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{montant}</span>
+                              <span style={{fontSize:13,color:P.purple,fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{montant}</span>
                             </div>
                           ))}
                         </div>
@@ -2185,27 +2179,27 @@ function App(){
                               {[["oui","✅ Oui, solution proposée"],["non","❌ Non, aucune proposition dans les 100 min"]].map(([v,l])=>(
                                 <button key={v} onClick={()=>setSpCos(v)} style={{
                                   flex:1,padding:"9px 14px",borderRadius:10,fontFamily:"inherit",fontSize:12,fontWeight:spCos===v?700:500,cursor:"pointer",
-                                  border:`1.5px solid ${spCos===v?(v==="oui"?"#D00020":C.green):C.border}`,
-                                  background:spCos===v?(v==="oui"?"#FFF0F0":C.greenLight):"white",
-                                  color:spCos===v?(v==="oui"?"#C00030":C.green):C.textMid
+                                  border:`1.5px solid ${spCos===v?(v==="oui"?"#D00020":P.green):P.border}`,
+                                  background:spCos===v?(v==="oui"?"#FFF0F0":P.greenLight):"white",
+                                  color:spCos===v?(v==="oui"?"#C00030":P.green):P.textMid
                                 }}>{l}</button>
                               ))}
                             </div>
                           </div>
                         )}
                         {verdict&&verdict.type!=="renoncement"&&(
-                          <div style={{borderRadius:12,padding:"14px 16px",background:verdict.type==="accord"?C.greenLight:"#FFF0F0",border:`1.5px solid ${verdict.type==="accord"?"#60C090":"#F0A0A0"}`,marginTop:4}}>
-                            <div style={{fontWeight:800,fontSize:13,color:verdict.type==="accord"?C.green:"#B00020",marginBottom:8}}>
+                          <div style={{borderRadius:12,padding:"14px 16px",background:verdict.type==="accord"?P.greenLight:"#FFF0F0",border:`1.5px solid ${verdict.type==="accord"?"#60C090":"#F0A0A0"}`,marginTop:4}}>
+                            <div style={{fontWeight:800,fontSize:13,color:verdict.type==="accord"?P.green:"#B00020",marginBottom:8}}>
                               {verdict.type==="accord"?"✅":"🚫"} {verdict.title}
                             </div>
-                            <div style={{fontSize:12,color:verdict.type==="accord"?C.green:"#900018",lineHeight:1.7,marginBottom:verdict.details?8:0}}>{verdict.text}</div>
+                            <div style={{fontSize:12,color:verdict.type==="accord"?P.green:"#900018",lineHeight:1.7,marginBottom:verdict.details?8:0}}>{verdict.text}</div>
                             {verdict.details&&(
                               <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                                {verdict.details.map((d,i)=><div key={i} style={{fontSize:12,color:C.green,fontWeight:600}}>{d}</div>)}
+                                {verdict.details.map((d,i)=><div key={i} style={{fontSize:12,color:P.green,fontWeight:600}}>{d}</div>)}
                               </div>
                             )}
                             {verdict.g30&&(
-                              <div style={{marginTop:10,padding:"8px 12px",borderRadius:8,background:"rgba(0,0,0,.04)",fontSize:11,color:C.textMid}}>
+                              <div style={{marginTop:10,padding:"8px 12px",borderRadius:8,background:"rgba(0,0,0,.04)",fontSize:11,color:P.textMid}}>
                                 💡 <strong>G30 :</strong> {verdict.g30note}
                               </div>
                             )}
@@ -2230,14 +2224,14 @@ function App(){
               const open=openFraisCards.has("frais");
               const toggle=()=>setOpenFraisCards(prev=>{const n=new Set(prev);n.has("frais")?n.delete("frais"):n.add("frais");return n;});
               return(<>
-                <button onClick={toggle} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left",borderBottom:open?`1px solid ${C.border}`:"none"}}>
+                <button onClick={toggle} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left",borderBottom:open?`1px solid ${P.border}`:"none"}}>
                   <span style={{display:"flex",alignItems:"center",gap:9}}>
                     <span style={{fontSize:18}}>{Icon.receipt}</span>
-                    <span style={{fontSize:13,fontWeight:700,color:C.text}}>Frais engagés</span>
+                    <span style={{fontSize:13,fontWeight:700,color:P.text}}>Frais engagés</span>
                   </span>
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
-                    {open&&<button onClick={e=>{e.stopPropagation();addFrais();}} style={{background:C.blue,color:"white",border:"none",borderRadius:20,padding:"5px 14px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ Ajouter</button>}
-                    <span className={`acc-chevron${open?" open":""}`} style={{color:C.textMuted}}>
+                    {open&&<button onClick={e=>{e.stopPropagation();addFrais();}} style={{background:P.blue,color:"white",border:"none",borderRadius:20,padding:"5px 14px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ Ajouter</button>}
+                    <span className={`acc-chevron${open?" open":""}`} style={{color:P.textMuted}}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                     </span>
                   </div>
@@ -2252,8 +2246,8 @@ function App(){
                       return(
                         <div key={f.id} style={{
                           marginBottom:10,padding:"14px 16px",borderRadius:12,
-                          background:isTaxiSpecial?"#EAF0FF":C.surface2,
-                          border:`1px solid ${isTaxiSpecial?"#B0C8F0":C.border}`,
+                          background:isTaxiSpecial?"#EAF0FF":P.surface2,
+                          border:`1px solid ${isTaxiSpecial?"#B0C8F0":P.border}`,
                         }}>
                           <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:10}}>
                             <div style={{fontSize:22,lineHeight:1,paddingTop:4,flexShrink:0}}>{def.icon}</div>
@@ -2265,20 +2259,20 @@ function App(){
                                 <optgroup label="🏨 Hébergement — Tous tarifs">{FRAIS_TYPES.filter(t=>["hotel_province","hotel_grande"].includes(t.id)).map(t=><option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}</optgroup>
                                 <optgroup label="⭐ Hébergement — Optimum+">{FRAIS_TYPES.filter(t=>["hotel_province_optimum","hotel_grande_optimum"].includes(t.id)).map(t=><option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}</optgroup>
                               </select>
-                              <div style={{fontSize:11,color:isTaxiSpecial?C.blue:C.textMuted,marginTop:3,fontStyle:"italic",fontWeight:isTaxiSpecial?600:400}}>{def.note}</div>
+                              <div style={{fontSize:11,color:isTaxiSpecial?P.blue:P.textMuted,marginTop:3,fontStyle:"italic",fontWeight:isTaxiSpecial?600:400}}>{def.note}</div>
                             </div>
                             {fraisList.length>1&&(
-                              <button onClick={()=>removeFrais(f.id)} style={{background:"none",border:`1.5px solid ${C.border}`,color:C.textMuted,borderRadius:6,width:28,height:28,cursor:"pointer",fontSize:12,flexShrink:0,marginTop:20}}>✕</button>
+                              <button onClick={()=>removeFrais(f.id)} style={{background:"none",border:`1.5px solid ${P.border}`,color:P.textMuted,borderRadius:6,width:28,height:28,cursor:"pointer",fontSize:12,flexShrink:0,marginTop:20}}>✕</button>
                             )}
                           </div>
                           <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
                             <div style={{flex:"0 0 95px"}}>
                               <label className="field-label">{unitLabel}</label>
                               {isTaxiSpecial
-                                ?<div style={{padding:"9px 10px",borderRadius:8,background:"#D8E4FF",border:`1.5px solid #B0C8F0`,fontSize:13,fontWeight:700,color:C.blue,textAlign:"center",fontVariantNumeric:"tabular-nums"}}>1</div>
+                                ?<div style={{padding:"9px 10px",borderRadius:8,background:"#D8E4FF",border:`1.5px solid #B0C8F0`,fontSize:13,fontWeight:700,color:P.blue,textAlign:"center",fontVariantNumeric:"tabular-nums"}}>1</div>
                                 :<input type="number" min="1" aria-label={unitLabel} value={f.qty} onChange={e=>updateFrais(f.id,"qty",e.target.value)} style={{...inp,fontWeight:700,textAlign:"center",fontVariantNumeric:"tabular-nums lining-nums",fontFamily:"'Inter','DM Sans',sans-serif",fontSize:15}}/>
                               }
-                              <div style={{fontSize:11,color:isTaxiSpecial?C.blue:C.red,marginTop:3,fontWeight:600,textAlign:"center"}}>
+                              <div style={{fontSize:11,color:isTaxiSpecial?P.blue:P.red,marginTop:3,fontWeight:600,textAlign:"center"}}>
                                 {isTaxiSpecial?"Forfait/course":`Plafond : ${def.max*qty} €`}
                               </div>
                             </div>
@@ -2289,7 +2283,7 @@ function App(){
                                 value={f.montant} onChange={e=>updateFrais(f.id,"montant",e.target.value)}
                                 style={{...inp,fontVariantNumeric:"tabular-nums lining-nums",fontFamily:"'Inter','DM Sans',sans-serif",fontWeight:600,fontSize:15}}
                               />
-                              <div style={{fontSize:11,color:C.textMuted,marginTop:3}}>
+                              <div style={{fontSize:11,color:P.textMuted,marginTop:3}}>
                                 Plafond barème : <strong>{def.max} €/{def.unit}</strong>
                               </div>
                             </div>
@@ -2299,8 +2293,8 @@ function App(){
                     })}
                     {/* Résultats frais */}
                     {fraisComputed&&(
-                      <div style={{background:C.surface,borderRadius:14,border:`1px solid ${C.borderMid}`,overflow:"hidden",boxShadow:"0 6px 24px rgba(0,0,0,.10)",marginTop:4}}>
-                        <div style={{background:`linear-gradient(135deg,#002B7A,${C.blue})`,padding:"18px 22px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <div style={{background:P.surface,borderRadius:14,border:`1px solid ${P.borderMid}`,overflow:"hidden",boxShadow:"0 6px 24px rgba(0,0,0,.10)",marginTop:4}}>
+                        <div style={{background:`linear-gradient(135deg,#002B7A,${P.blue})`,padding:"18px 22px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                           <div style={{color:"rgba(255,255,255,.65)",fontSize:12,fontWeight:500}}>Total remboursable estimé</div>
                           <div style={{color:"white",fontSize:32,fontWeight:800,letterSpacing:"-.5px",fontVariantNumeric:"tabular-nums lining-nums",fontFamily:"'Inter','DM Sans',sans-serif"}}>
                             <AnimatedNumber value={fraisComputed.total}/>{" €"}
@@ -2312,25 +2306,25 @@ function App(){
                               display:"grid",gridTemplateColumns:"32px 1fr auto auto",
                               gap:12,alignItems:"center",
                               padding:"11px 8px",
-                              borderTop:i>0?`1px solid ${C.border}`:"none",
+                              borderTop:i>0?`1px solid ${P.border}`:"none",
                             }}>
                               <div style={{fontSize:20,textAlign:"center"}}>{r.def.icon}</div>
                               <div>
                                 <div style={{fontWeight:600,fontSize:12.5}}>{r.def.label}</div>
-                                <div style={{fontSize:11.5,color:C.textMid,marginTop:2}}>
+                                <div style={{fontSize:11.5,color:P.textMid,marginTop:2}}>
                                   {r.qty} {r.def.unit}(s) × {r.def.max}€ = plafond {r.plafond}€
                                 </div>
                               </div>
-                              <div style={{textAlign:"right",fontSize:11.5,color:C.textMid,fontVariantNumeric:"tabular-nums"}}>
+                              <div style={{textAlign:"right",fontSize:11.5,color:P.textMid,fontVariantNumeric:"tabular-nums"}}>
                                 <span style={{fontFamily:"'Inter','DM Sans',sans-serif",fontVariantNumeric:"tabular-nums lining-nums"}}>{r.montant.toFixed(2)} €</span>
                               </div>
                               <div>
                                 <AmountPill
-                                  color={r.rembourse<r.montant?C.amber:C.green}
+                                  color={r.rembourse<r.montant?P.amber:P.green}
                                   size={14}
                                 >{r.rembourse.toFixed(2)} €</AmountPill>
                                 {r.rembourse<r.montant&&(
-                                  <div style={{fontSize:11.5,color:C.amber,textAlign:"center",marginTop:2,fontWeight:700}}>Plafonné</div>
+                                  <div style={{fontSize:11.5,color:P.amber,textAlign:"center",marginTop:2,fontWeight:700}}>Plafonné</div>
                                 )}
                               </div>
                             </div>
@@ -2348,7 +2342,7 @@ function App(){
         {/* ══════════ TAB BARÈME ══════════ */}
         {tab==="bareme"&&(()=>{
           const BAREME_COLS=[
-            {id:"tgv_dom",  label:"TGV INOUI / Intercités", color:C.red},
+            {id:"tgv_dom",  label:"TGV INOUI / Intercités", color:P.red},
             {id:"tgv_int",  label:"TGV intl. (filiale)",    color:"#C8005A"},
             {id:"ouigo",    label:"OUIGO",                  color:"#E8005D"},
             {id:"ter",      label:"TER",                    color:"#2E7D5E"},
@@ -2381,19 +2375,19 @@ function App(){
                 width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
                 padding:"14px 18px",background:"none",border:"none",cursor:"pointer",
                 fontFamily:"inherit",textAlign:"left",
-                borderBottom:isOpen?`1px solid ${C.border}`:"none",
+                borderBottom:isOpen?`1px solid ${P.border}`:"none",
               }}>
                 <span style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{display:"inline-flex",alignItems:"center",color:color||C.text,opacity:.8}}>{icon}</span>
-                  <span style={{fontSize:13,fontWeight:700,color:color||C.text}}>{label}</span>
+                  <span style={{display:"inline-flex",alignItems:"center",color:color||P.text,opacity:.8}}>{icon}</span>
+                  <span style={{fontSize:13,fontWeight:700,color:color||P.text}}>{label}</span>
                   {badge&&<span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,
-                    background:`${color||C.red}18`,color:color||C.red,border:`1px solid ${color||C.red}30`}}>{badge}</span>}
+                    background:`${color||P.red}18`,color:color||P.red,border:`1px solid ${color||P.red}30`}}>{badge}</span>}
                   {id==="standard"&&finalDelay>=30&&(
                     <span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,
-                      background:"#FFF0A0",color:C.amber,border:`1px solid ${C.amberMid}`}}>→ {finalDelay} min actif</span>
+                      background:"#FFF0A0",color:P.amber,border:`1px solid ${P.amberMid}`}}>→ {finalDelay} min actif</span>
                   )}
                 </span>
-                <span className={`acc-chevron${isOpen?" open":""}`} style={{color:C.textMuted}}>
+                <span className={`acc-chevron${isOpen?" open":""}`} style={{color:P.textMuted}}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="6 9 12 15 18 9"/>
                   </svg>
@@ -2407,20 +2401,20 @@ function App(){
 
           {/* ── G30 Standard — accordéon ── */}
           <div className="card" style={{padding:0,overflow:"hidden"}}>
-            <AccHeader id="standard" icon={Icon.chart} label="G30 — Barème standard" color={C.red}/>
+            <AccHeader id="standard" icon={Icon.chart} label="G30 — Barème standard" color={P.red}/>
             {openBareme.has("standard")&&(
               <div className="acc-body" style={{padding:"14px 18px"}}>
                 {/* Filtre transporteur */}
                 <div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap",marginBottom:12}}>
-                  <span style={{fontSize:11,color:C.textMuted,fontWeight:600,display:"flex",alignItems:"center",gap:4}}>
+                  <span style={{fontSize:11,color:P.textMuted,fontWeight:600,display:"flex",alignItems:"center",gap:4}}>
                     {Icon.filter} Filtrer :
                   </span>
-                  {[{id:"all",label:"Tous",color:C.red},...BAREME_COLS].map(c=>(
+                  {[{id:"all",label:"Tous",color:P.red},...BAREME_COLS].map(c=>(
                     <button key={c.id} onClick={()=>setBaremeFilter(c.id)} style={{
                       padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:baremeFilter===c.id?700:500,
-                      border:`1.5px solid ${baremeFilter===c.id?(c.color||C.red):C.border}`,
-                      background:baremeFilter===c.id?(c.color||C.red):"white",
-                      color:baremeFilter===c.id?"white":C.textMid,
+                      border:`1.5px solid ${baremeFilter===c.id?(c.color||P.red):P.border}`,
+                      background:baremeFilter===c.id?(c.color||P.red):"white",
+                      color:baremeFilter===c.id?"white":P.textMid,
                       cursor:"pointer",fontFamily:"inherit",transition:"all .15s",
                     }}>{c.label}</button>
                   ))}
@@ -2429,7 +2423,7 @@ function App(){
                   <table className="bareme-table" style={{minWidth:baremeFilter==="all"?500:220}}>
                     <thead>
                       <tr>
-                        <th style={{background:C.red,color:"white",padding:"9px 12px",textAlign:"left",whiteSpace:"nowrap"}}>Retard</th>
+                        <th style={{background:P.red,color:"white",padding:"9px 12px",textAlign:"left",whiteSpace:"nowrap"}}>Retard</th>
                         {visCols.map(c=>(
                           <th key={c.id} style={{background:c.color,color:"white",padding:"9px 12px",textAlign:"center",whiteSpace:"nowrap"}}>{c.label}</th>
                         ))}
@@ -2440,11 +2434,11 @@ function App(){
                         const active=finalDelay>=min&&finalDelay<=max&&finalDelay>=30;
                         return(
                           <tr key={label} className={active?"bareme-row-active":""} style={{
-                            background:active?"#FFF0D0":i%2===0?"white":C.surface2,
+                            background:active?"#FFF0D0":i%2===0?"white":P.surface2,
                             transition:"background .25s ease",fontWeight:active?700:400,
                           }}>
-                            <td style={{padding:"9px 12px",fontWeight:700,color:active?C.amber:C.text,whiteSpace:"nowrap"}}>
-                              {active&&<span style={{marginRight:5,fontSize:11,background:C.amber,color:"white",borderRadius:4,padding:"1px 5px"}}>→</span>}
+                            <td style={{padding:"9px 12px",fontWeight:700,color:active?P.amber:P.text,whiteSpace:"nowrap"}}>
+                              {active&&<span style={{marginRight:5,fontSize:11,background:P.amber,color:"white",borderRadius:4,padding:"1px 5px"}}>→</span>}
                               {label}
                             </td>
                             {visCols.map(c=>{
@@ -2452,7 +2446,7 @@ function App(){
                               return(
                                 <td key={c.id} style={{padding:"9px 12px",textAlign:"center",
                                   fontWeight:active?700:600,fontSize:13,
-                                  color:v==="0%"?C.textMuted:active?C.amber:c.color}}>
+                                  color:v==="0%"?P.textMuted:active?P.amber:c.color}}>
                                   {v}
                                 </td>
                               );
@@ -2463,7 +2457,7 @@ function App(){
                     </tbody>
                   </table>
                 </div>
-                <div style={{marginTop:10,fontSize:11,color:C.textMuted,display:"flex",gap:12,flexWrap:"wrap",padding:"4px 0"}}>
+                <div style={{marginTop:10,fontSize:11,color:P.textMuted,display:"flex",gap:12,flexWrap:"wrap",padding:"4px 0"}}>
                   <span>⚑ BAD seul = 30–59 min (TGV INOUI & Intercités)</span>
                   <span>· OUIGO 0% pour 30–59 min</span>
                   <span>· Seuil minimum : <strong>4€</strong></span>
@@ -2473,15 +2467,15 @@ function App(){
           </div>
 
           {/* Abonnés Max */}
-          <div className="card" style={{padding:0,overflow:"hidden",borderTop:`3px solid ${C.green}`}}>
-            <AccHeader id="max" icon={Icon.ticket} label="G30 — Abonnés Max & Forfaits (0€)" color={C.green} badge="Montants fixes BAD"/>
+          <div className="card" style={{padding:0,overflow:"hidden",borderTop:`3px solid ${P.green}`}}>
+            <AccHeader id="max" icon={Icon.ticket} label="G30 — Abonnés Max & Forfaits (0€)" color={P.green} badge="Montants fixes BAD"/>
             {openBareme.has("max")&&(
               <div className="acc-body" style={{padding:"14px 18px"}}>
-                <div style={{fontSize:11,color:C.textMid,marginBottom:10,fontStyle:"italic"}}>Billet à 0€ — abonnement Max, Abo Forfait, Pass Rail…</div>
+                <div style={{fontSize:11,color:P.textMid,marginBottom:10,fontStyle:"italic"}}>Billet à 0€ — abonnement Max, Abo Forfait, Pass Rail…</div>
                 <div style={{overflowX:"auto"}}>
                   <table className="bareme-table" style={{minWidth:320}}>
                     <thead>
-                      <tr style={{background:C.green,color:"white"}}>
+                      <tr style={{background:P.green,color:"white"}}>
                         <th>Retard</th><th style={{textAlign:"center"}}>Standard</th><th style={{textAlign:"center"}}>OUIGO</th>
                       </tr>
                     </thead>
@@ -2491,10 +2485,10 @@ function App(){
                         ["180–239 min","10€ BAD","↑"],
                         ["≥ 240 min","20€ BAD","↑"],
                       ].map(([delay,ma,ml],i)=>(
-                        <tr key={delay} style={{background:i%2===0?"white":C.surface2}}>
+                        <tr key={delay} style={{background:i%2===0?"white":P.surface2}}>
                           <td style={{padding:"9px 12px",fontWeight:700}}>{delay}</td>
-                          <td style={{padding:"9px 12px",textAlign:"center",fontWeight:700,color:C.red}}>{ma}</td>
-                          <td style={{padding:"9px 12px",textAlign:"center",fontWeight:600,color:C.green,fontSize:11}}>{ml}</td>
+                          <td style={{padding:"9px 12px",textAlign:"center",fontWeight:700,color:P.red}}>{ma}</td>
+                          <td style={{padding:"9px 12px",textAlign:"center",fontWeight:600,color:P.green,fontSize:11}}>{ml}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2506,14 +2500,14 @@ function App(){
 
           {/* Billet Prime */}
           <div className="card" style={{padding:0,overflow:"hidden",borderTop:"3px solid #1A3A8F"}}>
-            <AccHeader id="prime" icon={Icon.ticket} label="G30 — Billet Prime · File FID AV (LT 2397)" color={C.blue} badge="TGV INOUI uniquement"/>
+            <AccHeader id="prime" icon={Icon.ticket} label="G30 — Billet Prime · File FID AV (LT 2397)" color={P.blue} badge="TGV INOUI uniquement"/>
             {openBareme.has("prime")&&(
               <div className="acc-body" style={{padding:"14px 18px"}}>
-                <div style={{fontSize:11,color:C.textMid,marginBottom:10,fontStyle:"italic"}}>File VOYAGE SENIOR OSCAR / GVLC</div>
+                <div style={{fontSize:11,color:P.textMid,marginBottom:10,fontStyle:"italic"}}>File VOYAGE SENIOR OSCAR / GVLC</div>
                 <div style={{overflowX:"auto"}}>
                   <table className="bareme-table" style={{minWidth:420}}>
                     <thead>
-                      <tr style={{background:C.blue,color:"white"}}>
+                      <tr style={{background:P.blue,color:"white"}}>
                         <th>Retard</th>
                         <th style={{textAlign:"center"}}>Titulaire<br/><span style={{fontSize:10,fontWeight:400}}>Billet Prime personnel</span></th>
                         <th style={{textAlign:"center",background:"#3D1A6E"}}>FID + Tiers<br/><span style={{fontSize:10,fontWeight:400}}>Points + BAD tiers</span></th>
@@ -2530,16 +2524,16 @@ function App(){
                         <tr key={delay} style={{background:i%2===0?"#EBF0FF":"white"}}>
                           <td style={{padding:"9px 12px",fontWeight:700,whiteSpace:"nowrap"}}>{delay}</td>
                           <td style={{padding:"9px 12px",textAlign:"center"}}>
-                            <span style={{fontWeight:800,color:C.blue,fontSize:13}}>{pts}</span>
+                            <span style={{fontWeight:800,color:P.blue,fontSize:13}}>{pts}</span>
                           </td>
                           <td style={{padding:"9px 12px",textAlign:"center"}}>
-                            <span style={{fontWeight:700,color:C.blue,fontSize:12}}>{fidPts}</span>
-                            <span style={{fontWeight:700,color:C.purple,fontSize:12}}> {fidBad}</span>
+                            <span style={{fontWeight:700,color:P.blue,fontSize:12}}>{fidPts}</span>
+                            <span style={{fontWeight:700,color:P.purple,fontSize:12}}> {fidBad}</span>
                           </td>
                           <td style={{padding:"9px 12px",textAlign:"center"}}>
-                            <span style={{fontWeight:700,color:C.purple,fontSize:12}}>{gvtBad1}</span>
-                            <span style={{fontWeight:500,color:C.textMuted,fontSize:11}}> + </span>
-                            <span style={{fontWeight:700,color:C.purple,fontSize:12}}>{gvtBad2}</span>
+                            <span style={{fontWeight:700,color:P.purple,fontSize:12}}>{gvtBad1}</span>
+                            <span style={{fontWeight:500,color:P.textMuted,fontSize:11}}> + </span>
+                            <span style={{fontWeight:700,color:P.purple,fontSize:12}}>{gvtBad2}</span>
                           </td>
                         </tr>
                       ))}
@@ -2588,17 +2582,17 @@ function App(){
               <div className="acc-body" style={{padding:"14px 18px"}}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                   <div>
-                    <div style={{fontWeight:700,fontSize:12,color:C.green,marginBottom:8,display:"flex",alignItems:"center",gap:5}}>{Icon.check} Éligibles</div>
+                    <div style={{fontWeight:700,fontSize:12,color:P.green,marginBottom:8,display:"flex",alignItems:"center",gap:5}}>{Icon.check} Éligibles</div>
                     {CARRIERS.filter(c=>c.group==="eligible").map(c=>(
-                      <div key={c.id} style={{display:"flex",alignItems:"center",gap:7,padding:"6px 0",fontSize:12,color:C.text,borderBottom:`1px solid ${C.border}`}}>
+                      <div key={c.id} style={{display:"flex",alignItems:"center",gap:7,padding:"6px 0",fontSize:12,color:P.text,borderBottom:`1px solid ${P.border}`}}>
                         <div style={{width:7,height:7,borderRadius:"50%",background:c.color,flexShrink:0}}/>{c.label}
                       </div>
                     ))}
                   </div>
                   <div>
-                    <div style={{fontWeight:700,fontSize:12,color:C.orange,marginBottom:8,display:"flex",alignItems:"center",gap:5}}>{Icon.cross} Hors périmètre</div>
+                    <div style={{fontWeight:700,fontSize:12,color:P.orange,marginBottom:8,display:"flex",alignItems:"center",gap:5}}>{Icon.cross} Hors périmètre</div>
                     {CARRIERS.filter(c=>c.group==="non_eligible").map(c=>(
-                      <div key={c.id} style={{padding:"6px 0",fontSize:12,color:c.id==="trsi"?C.orange:C.textMuted,borderBottom:`1px solid ${C.border}`,fontWeight:c.id==="trsi"?600:400}}>
+                      <div key={c.id} style={{padding:"6px 0",fontSize:12,color:c.id==="trsi"?P.orange:P.textMuted,borderBottom:`1px solid ${P.border}`,fontWeight:c.id==="trsi"?600:400}}>
                         {c.label}{c.id==="trsi"?" — Billet Combiné":""}
                       </div>
                     ))}
@@ -2619,7 +2613,7 @@ function App(){
                 <div style={{overflowX:"auto"}}>
                   <table className="bareme-table">
                     <thead>
-                      <tr style={{background:C.blue,color:"white"}}>
+                      <tr style={{background:P.blue,color:"white"}}>
                         {["Catégorie","Sous-type","Plafond"].map(h=><th key={h}>{h}</th>)}
                       </tr>
                     </thead>
@@ -2635,10 +2629,10 @@ function App(){
                         ["Hébergement","Grande ville — Optimum+","300 € / passager"],
                         ["Hébergement","Avec n° DNV-DNIC","Coût réel (>350€ → pôle AV)"],
                       ].map(([cat,sub,max],i)=>(
-                        <tr key={i} style={{background:i%2===0?"white":C.surface2}}>
-                          <td style={{fontWeight:600,color:C.text,fontSize:11.5}}>{cat}</td>
-                          <td style={{color:C.textMid,fontSize:11.5}}>{sub}</td>
-                          <td style={{fontWeight:700,color:C.red,whiteSpace:"nowrap"}}>{max}</td>
+                        <tr key={i} style={{background:i%2===0?"white":P.surface2}}>
+                          <td style={{fontWeight:600,color:P.text,fontSize:11.5}}>{cat}</td>
+                          <td style={{color:P.textMid,fontSize:11.5}}>{sub}</td>
+                          <td style={{fontWeight:700,color:P.red,whiteSpace:"nowrap"}}>{max}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2661,28 +2655,28 @@ function App(){
           {/* ── Sélecteur de section ── */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
             {[
-              {id:"retractation", icon:"↩", label:"Droit de rétractation", sub:"Achat internet · 14 jours", color:C.purple, bg:C.purpleLight, border:"#D8B4FF"},
+              {id:"retractation", icon:"↩", label:"Droit de rétractation", sub:"Achat internet · 14 jours", color:P.purple, bg:P.purpleLight, border:"#D8B4FF"},
               {id:"resiliation",  icon:"✕", label:"Résiliation abonnement Max", sub:"Max Jeune · Senior · Actif · Actif+", color:"#1A5C38", bg:"#D4F0E4", border:"#60C898"},
             ].map(opt=>{
               const active=datesSection===opt.id;
               return(
                 <button key={opt.id} onClick={()=>setDatesSection(active?null:opt.id)} style={{
                   padding:"16px 18px",borderRadius:14,cursor:"pointer",fontFamily:"inherit",
-                  textAlign:"left",border:`2px solid ${active?opt.border:C.border}`,
+                  textAlign:"left",border:`2px solid ${active?opt.border:P.border}`,
                   background:active?opt.bg:"white",
                   boxShadow:active?`0 0 0 3px ${opt.border}44`:"0 1px 3px rgba(0,0,0,.05)",
                   transition:"all .18s",
                 }}>
                   <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:5}}>
                     <span style={{fontSize:22}}>{opt.icon}</span>
-                    <span style={{fontWeight:700,fontSize:13.5,color:active?opt.color:C.text,lineHeight:1.2}}>{opt.label}</span>
+                    <span style={{fontWeight:700,fontSize:13.5,color:active?opt.color:P.text,lineHeight:1.2}}>{opt.label}</span>
                     <span style={{
-                      marginLeft:"auto",fontSize:18,color:active?opt.color:C.textMuted,
+                      marginLeft:"auto",fontSize:18,color:active?opt.color:P.textMuted,
                       transition:"transform .2s",display:"inline-block",
                       transform:active?"rotate(90deg)":"rotate(0deg)",
                     }}>›</span>
                   </div>
-                  <div style={{fontSize:11,color:active?opt.color:C.textMuted,fontWeight:active?600:400}}>{opt.sub}</div>
+                  <div style={{fontSize:11,color:active?opt.color:P.textMuted,fontWeight:active?600:400}}>{opt.sub}</div>
                 </button>
               );
             })}
@@ -2691,8 +2685,8 @@ function App(){
           {/* ─── BLOC 1 : RÉTRACTATION ─────────────────────────── */}
           {datesSection==="retractation"&&(
           <div className="card" style={{marginBottom:12}}>
-            <h2 className="section-title" style={{color:C.purple}}>
-              <IconTitle icon={Icon.cal} label="Droit de rétractation — Achat internet" color={C.purple}/>
+            <h2 className="section-title" style={{color:P.purple}}>
+              <IconTitle icon={Icon.cal} label="Droit de rétractation — Achat internet" color={P.purple}/>
             </h2>
 
             {/* ── Sélecteur type de produit ── */}
@@ -2704,18 +2698,18 @@ function App(){
                 <button key={opt.id} onClick={()=>setRetractType(opt.id)} style={{
                   padding:"12px 14px",borderRadius:12,cursor:"pointer",fontFamily:"inherit",
                   textAlign:"left",
-                  border:`2px solid ${retractType===opt.id?C.purple:C.border}`,
-                  background:retractType===opt.id?C.purpleLight:"white",
+                  border:`2px solid ${retractType===opt.id?P.purple:P.border}`,
+                  background:retractType===opt.id?P.purpleLight:"white",
                   boxShadow:retractType===opt.id?"0 0 0 3px rgba(91,45,142,.12)":"none",
                   transition:"all .18s",
                 }}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
                     <span style={{fontSize:18}}>{opt.icon}</span>
-                    <span style={{fontWeight:700,fontSize:13,color:retractType===opt.id?C.purple:C.text}}>{opt.label}</span>
-                    {retractType===opt.id&&<span style={{marginLeft:"auto",fontSize:11,background:C.purple,color:"white",borderRadius:20,padding:"1px 8px",fontWeight:700}}>✓</span>}
+                    <span style={{fontWeight:700,fontSize:13,color:retractType===opt.id?P.purple:P.text}}>{opt.label}</span>
+                    {retractType===opt.id&&<span style={{marginLeft:"auto",fontSize:11,background:P.purple,color:"white",borderRadius:20,padding:"1px 8px",fontWeight:700}}>✓</span>}
                   </div>
-                  <div style={{fontSize:11.5,color:C.textMuted,marginBottom:3}}>{opt.sub}</div>
-                  <div style={{fontSize:11,fontWeight:700,color:retractType===opt.id?C.purple:"#A09890",background:retractType===opt.id?"rgba(91,45,142,.1)":"#F0EDE8",borderRadius:6,padding:"2px 7px",display:"inline-block"}}>
+                  <div style={{fontSize:11.5,color:P.textMuted,marginBottom:3}}>{opt.sub}</div>
+                  <div style={{fontSize:11,fontWeight:700,color:retractType===opt.id?P.purple:"#A09890",background:retractType===opt.id?"rgba(91,45,142,.1)":"#F0EDE8",borderRadius:6,padding:"2px 7px",display:"inline-block"}}>
                     {opt.rule}
                   </div>
                 </button>
@@ -2750,8 +2744,8 @@ function App(){
                     padding:"10px 16px",borderRadius:10,cursor:"pointer",fontFamily:"inherit",
                     fontSize:12,fontWeight:700,lineHeight:1.3,
                     border:`2px solid ${jourOuvrableMode?"#0A5C38":"#9B7FBB"}`,
-                    background:jourOuvrableMode?"#D4F0E4":C.purpleLight,
-                    color:jourOuvrableMode?C.green:C.purple,
+                    background:jourOuvrableMode?"#D4F0E4":P.purpleLight,
+                    color:jourOuvrableMode?P.green:P.purple,
                     display:"flex",alignItems:"center",gap:8,
                     boxShadow:jourOuvrableMode?"0 0 0 3px rgba(10,92,56,.15)":"0 0 0 3px rgba(91,45,142,.1)",
                     transition:"all .2s",
@@ -2780,25 +2774,25 @@ function App(){
                 borderRadius:14,padding:"16px 18px",
               }}>
                 <div style={{display:"grid",gridTemplateColumns:jourOuvrableMode&&retractResult.limiteNonOuvrable?"1fr 1fr 1fr":"1fr 1fr",gap:12,marginBottom:14}}>
-                  <div style={{background:C.surface,borderRadius:10,padding:"12px 14px",border:`1px solid ${C.border}`}}>
-                    <div style={{fontSize:11,fontWeight:700,color:C.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>Date d'achat</div>
-                    <div style={{fontSize:13,fontWeight:700,color:C.text}}>{fmtDate(retractResult.achat)}</div>
+                  <div style={{background:P.surface,borderRadius:10,padding:"12px 14px",border:`1px solid ${P.border}`}}>
+                    <div style={{fontSize:11,fontWeight:700,color:P.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>Date d'achat</div>
+                    <div style={{fontSize:13,fontWeight:700,color:P.text}}>{fmtDate(retractResult.achat)}</div>
                   </div>
                   <div style={{
                     background:jourOuvrableMode&&retractResult.limiteNonOuvrable?"#FFF3D0":(expiredActive?"#FDE8EE":"#D4F0E4"),
                     borderRadius:10,padding:"12px 14px",
-                    border:`1px solid ${jourOuvrableMode&&retractResult.limiteNonOuvrable?C.amberMid:(expiredActive?"#F0A0B0":"#60C898")}`,
+                    border:`1px solid ${jourOuvrableMode&&retractResult.limiteNonOuvrable?P.amberMid:(expiredActive?"#F0A0B0":"#60C898")}`,
                   }}>
                     <div style={{fontSize:11,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:4,
-                      color:jourOuvrableMode&&retractResult.limiteNonOuvrable?C.amber:(expiredActive?C.red:C.green)}}>
+                      color:jourOuvrableMode&&retractResult.limiteNonOuvrable?P.amber:(expiredActive?P.red:P.green)}}>
                       J+14 calendaires
                     </div>
                     <div style={{fontSize:13,fontWeight:700,
-                      color:jourOuvrableMode&&retractResult.limiteNonOuvrable?C.amber:(expiredActive?C.red:C.green)}}>
+                      color:jourOuvrableMode&&retractResult.limiteNonOuvrable?P.amber:(expiredActive?P.red:P.green)}}>
                       {fmtDate(retractResult.limiteCalendaire)}
                     </div>
                     {jourOuvrableMode&&retractResult.limiteNonOuvrable&&(
-                      <div style={{fontSize:11,marginTop:4,color:C.amber,fontWeight:700}}>
+                      <div style={{fontSize:11,marginTop:4,color:P.amber,fontWeight:700}}>
                         ⚠️ {isDimanche(retractResult.limiteCalendaire)&&retractResult.ferieLabel?`Dimanche & ${retractResult.ferieLabel}`:isDimanche(retractResult.limiteCalendaire)?"Dimanche":retractResult.ferieLabel?`Férié — ${retractResult.ferieLabel}`:""}
                       </div>
                     )}
@@ -2810,17 +2804,17 @@ function App(){
                   </div>
                   {jourOuvrableMode&&retractResult.limiteNonOuvrable&&(
                     <div style={{background:"#D4F0E4",borderRadius:10,padding:"12px 14px",border:"1.5px solid #60C898"}}>
-                      <div style={{fontSize:11,fontWeight:700,color:C.green,letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>✅ 1er jour ouvrable</div>
-                      <div style={{fontSize:13,fontWeight:800,color:C.green}}>{fmtDate(retractResult.limiteReportee)}</div>
-                      <div style={{fontSize:11,marginTop:4,color:C.green,fontWeight:600}}>Date limite effective</div>
+                      <div style={{fontSize:11,fontWeight:700,color:P.green,letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>✅ 1er jour ouvrable</div>
+                      <div style={{fontSize:13,fontWeight:800,color:P.green}}>{fmtDate(retractResult.limiteReportee)}</div>
+                      <div style={{fontSize:11,marginTop:4,color:P.green,fontWeight:600}}>Date limite effective</div>
                     </div>
                   )}
                   {jourOuvrableMode&&!retractResult.limiteNonOuvrable&&(
                     <div style={{background:"#D4F0E4",borderRadius:10,padding:"12px 14px",border:"1.5px solid #60C898",display:"flex",alignItems:"center",justifyContent:"center"}}>
                       <div style={{textAlign:"center"}}>
                         <div style={{fontSize:20}}>✅</div>
-                        <div style={{fontSize:11,fontWeight:700,color:C.green,marginTop:4}}>Jour ouvrable</div>
-                        <div style={{fontSize:11,color:C.green,opacity:.7}}>Pas de report</div>
+                        <div style={{fontSize:11,fontWeight:700,color:P.green,marginTop:4}}>Jour ouvrable</div>
+                        <div style={{fontSize:11,color:P.green,opacity:.7}}>Pas de report</div>
                       </div>
                     </div>
                   )}
@@ -2836,7 +2830,7 @@ function App(){
                     </div>
                   </div>
                 </div>
-                <div style={{marginTop:10,fontSize:11,color:C.textMuted,lineHeight:1.6}}>
+                <div style={{marginTop:10,fontSize:11,color:P.textMuted,lineHeight:1.6}}>
                   ℹ️ <strong>Comment exercer le droit ?</strong> Courrier recommandé AR ou formulaire de rétractation sur le site de vente. Remboursement sous 14 jours après notification.
                 </div>
               </div>
@@ -2858,44 +2852,44 @@ function App(){
                 {/* 3 étapes visuelles */}
                 <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr auto 1fr",gap:6,alignItems:"center",marginBottom:14}}>
                   {/* Étape 1 : date achat */}
-                  <div style={{background:C.surface,borderRadius:10,padding:"11px 12px",border:`1px solid ${C.border}`}}>
-                    <div style={{fontSize:11,fontWeight:700,color:C.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:3}}>① Date d'achat</div>
-                    <div style={{fontSize:12,fontWeight:700,color:C.text}}>{fmtDate(cr.achat)}</div>
+                  <div style={{background:P.surface,borderRadius:10,padding:"11px 12px",border:`1px solid ${P.border}`}}>
+                    <div style={{fontSize:11,fontWeight:700,color:P.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:3}}>① Date d'achat</div>
+                    <div style={{fontSize:12,fontWeight:700,color:P.text}}>{fmtDate(cr.achat)}</div>
                   </div>
                   {/* Flèche */}
-                  <div style={{textAlign:"center",color:C.purple,fontWeight:900,fontSize:16}}>→</div>
+                  <div style={{textAlign:"center",color:P.purple,fontWeight:900,fontSize:16}}>→</div>
                   {/* Étape 2 : 1er jour ouvré */}
-                  <div style={{background:C.purpleLight,borderRadius:10,padding:"11px 12px",border:`1.5px solid #D8B4FF`}}>
-                    <div style={{fontSize:11,fontWeight:700,color:C.purple,letterSpacing:1,textTransform:"uppercase",marginBottom:3}}>② 1er jour ouvré<br/><span style={{fontWeight:400,fontSize:11,opacity:.7}}>Début du décompte</span></div>
-                    <div style={{fontSize:12,fontWeight:700,color:C.purple}}>{fmtDate(cr.premierJourOuvre)}</div>
-                    {cr.ferieStartLabel&&<div style={{fontSize:11,color:C.amber,fontWeight:700,marginTop:2}}>⚠️ Report — {cr.ferieStartLabel}</div>}
+                  <div style={{background:P.purpleLight,borderRadius:10,padding:"11px 12px",border:`1.5px solid #D8B4FF`}}>
+                    <div style={{fontSize:11,fontWeight:700,color:P.purple,letterSpacing:1,textTransform:"uppercase",marginBottom:3}}>② 1er jour ouvré<br/><span style={{fontWeight:400,fontSize:11,opacity:.7}}>Début du décompte</span></div>
+                    <div style={{fontSize:12,fontWeight:700,color:P.purple}}>{fmtDate(cr.premierJourOuvre)}</div>
+                    {cr.ferieStartLabel&&<div style={{fontSize:11,color:P.amber,fontWeight:700,marginTop:2}}>⚠️ Report — {cr.ferieStartLabel}</div>}
                   </div>
                   {/* Flèche + 14j */}
                   <div style={{textAlign:"center"}}>
-                    <div style={{color:C.purple,fontWeight:900,fontSize:14}}>→</div>
-                    <div style={{fontSize:11,fontWeight:700,color:C.purple,whiteSpace:"nowrap"}}>+14 j</div>
+                    <div style={{color:P.purple,fontWeight:900,fontSize:14}}>→</div>
+                    <div style={{fontSize:11,fontWeight:700,color:P.purple,whiteSpace:"nowrap"}}>+14 j</div>
                   </div>
                   {/* Étape 3 : date limite effective */}
                   <div style={{
                     background:expiredActive?"#FDE8EE":cr.limiteNonOuvrable?"#FFF3D0":"#D4F0E4",
                     borderRadius:10,padding:"11px 12px",
-                    border:`1.5px solid ${expiredActive?"#F0A0B0":cr.limiteNonOuvrable?C.amberMid:"#60C898"}`,
+                    border:`1.5px solid ${expiredActive?"#F0A0B0":cr.limiteNonOuvrable?P.amberMid:"#60C898"}`,
                   }}>
                     <div style={{fontSize:11,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:3,
-                      color:expiredActive?C.red:cr.limiteNonOuvrable?C.amber:C.green}}>
+                      color:expiredActive?P.red:cr.limiteNonOuvrable?P.amber:P.green}}>
                       ③ Date limite effective<br/>
                       <span style={{fontWeight:400,fontSize:11,opacity:.8}}>1er jour ouvré après J+14</span>
                     </div>
-                    <div style={{fontSize:12,fontWeight:800,color:expiredActive?C.red:cr.limiteNonOuvrable?C.amber:C.green}}>
+                    <div style={{fontSize:12,fontWeight:800,color:expiredActive?P.red:cr.limiteNonOuvrable?P.amber:P.green}}>
                       {fmtDate(cr.limiteReportee)}
                     </div>
                     {cr.limiteNonOuvrable&&!expiredActive&&(
-                      <div style={{fontSize:11,marginTop:3,color:C.amber,fontWeight:700}}>
+                      <div style={{fontSize:11,marginTop:3,color:P.amber,fontWeight:700}}>
                         📌 Report — {isDimanche(cr.limiteCalendaire)&&cr.ferieLabel?`Dim. & ${cr.ferieLabel}`:isDimanche(cr.limiteCalendaire)?"Dimanche":cr.ferieLabel?cr.ferieLabel:""}
                       </div>
                     )}
                     {!cr.limiteNonOuvrable&&(
-                      <div style={{fontSize:11,marginTop:3,color:C.green,fontWeight:600}}>✅ Déjà jour ouvré</div>
+                      <div style={{fontSize:11,marginTop:3,color:P.green,fontWeight:600}}>✅ Déjà jour ouvré</div>
                     )}
                   </div>
                 </div>
@@ -2912,7 +2906,7 @@ function App(){
                     </div>
                   </div>
                 </div>
-                <div style={{marginTop:10,fontSize:11,color:C.textMuted,lineHeight:1.6}}>
+                <div style={{marginTop:10,fontSize:11,color:P.textMuted,lineHeight:1.6}}>
                   ℹ️ <strong>Règle cartes :</strong> Délai de 14 jours décomptés à partir du 1er jour ouvré suivant l'achat · Date limite = 1er jour ouvré après J+14 · Jours fériés et dimanches exclus du décompte aux deux extrémités.
                 </div>
                 <div style={{marginTop:10,padding:"9px 12px",borderRadius:8,background:"#FFF8E7",border:"1.5px solid #F5C040",fontSize:11,lineHeight:1.65,color:"#7A5000"}}>
@@ -2923,7 +2917,7 @@ function App(){
             })()}
 
             {!dateAchat&&(
-              <div style={{textAlign:"center",padding:"24px",color:C.textMuted,fontSize:12.5,background:C.surface2,borderRadius:12}}>
+              <div style={{textAlign:"center",padding:"24px",color:P.textMuted,fontSize:12.5,background:P.surface2,borderRadius:12}}>
                 ↑ Saisissez la date d'achat pour calculer le délai de rétractation
               </div>
             )}
@@ -2933,8 +2927,8 @@ function App(){
           {/* ─── BLOC 2 : RÉSILIATION ──────────────────────────── */}
           {datesSection==="resiliation"&&(<React.Fragment>
           <div className="card">
-            <h2 className="section-title" style={{color:C.purple}}>
-              <IconTitle icon={Icon.cal} label="Résiliation abonnement Max" color={C.purple}/>
+            <h2 className="section-title" style={{color:P.purple}}>
+              <IconTitle icon={Icon.cal} label="Résiliation abonnement Max" color={P.purple}/>
             </h2>
             <div className="alert-warn" style={{marginBottom:16,fontSize:12}}>
               <strong>Engagement minimum 12 mois.</strong> Au-delà, résiliation libre et gratuite (Max Jeune/Senior/custom). Pour <strong>Max Actif / Actif+</strong> : reconduction tacite 12 mois ; résiliation anticipée = <strong>1 mensualité supplémentaire</strong> ; gratuite après la période initiale.
@@ -2973,7 +2967,7 @@ function App(){
                   <input type="number" className="calc-input" placeholder="Tarif selon votre O/D"
                     aria-label="Mensualité O/D en euros"
                     value={aboMensualiteVariable} onChange={e=>setAboMensualiteVariable(e.target.value)}/>
-                  <div style={{fontSize:11.5,color:C.textMuted,marginTop:4}}>
+                  <div style={{fontSize:11.5,color:P.textMuted,marginTop:4}}>
                     Tarif variable selon l'origine/destination. Consultez votre espace abonné.
                   </div>
                 </div>
@@ -2983,11 +2977,11 @@ function App(){
               {aboType.type==="mensuel"&&aboTypeId!=="custom"&&(
                 <div style={{display:"flex",alignItems:"flex-end"}}>
                   <div style={{
-                    background:C.purpleLight,borderRadius:10,padding:"10px 16px",
+                    background:P.purpleLight,borderRadius:10,padding:"10px 16px",
                     border:`1px solid #D8B4FF`,width:"100%",
                   }}>
-                    <div style={{fontSize:11,fontWeight:700,color:C.purple,letterSpacing:1,textTransform:"uppercase",marginBottom:2}}>Mensualité fixe</div>
-                    <div style={{fontSize:22,fontWeight:800,color:C.purple}}>{aboType.mensualite} €<span style={{fontSize:11,fontWeight:400,color:C.textMuted}}>/mois</span></div>
+                    <div style={{fontSize:11,fontWeight:700,color:P.purple,letterSpacing:1,textTransform:"uppercase",marginBottom:2}}>Mensualité fixe</div>
+                    <div style={{fontSize:22,fontWeight:800,color:P.purple}}>{aboType.mensualite} €<span style={{fontSize:11,fontWeight:400,color:P.textMuted}}>/mois</span></div>
                   </div>
                 </div>
               )}
@@ -3000,17 +2994,17 @@ function App(){
                   📅 Date d'activation / souscription
                   {aboType.debutPremierDuMois&&<span style={{
                     marginLeft:6,fontSize:11,fontWeight:700,color:"white",
-                    background:C.blue,borderRadius:20,padding:"1px 7px",letterSpacing:.5,
+                    background:P.blue,borderRadius:20,padding:"1px 7px",letterSpacing:.5,
                   }}>1er DU MOIS</span>}
                   {aboType.glissant&&<span style={{
                     marginLeft:6,fontSize:11,fontWeight:700,color:"white",
-                    background:C.purple,borderRadius:20,padding:"1px 7px",letterSpacing:.5,
+                    background:P.purple,borderRadius:20,padding:"1px 7px",letterSpacing:.5,
                   }}>MOIS GLISSANT</span>}
                 </label>
                 <input type="date" className="calc-input"
                   value={dateActivation} onChange={e=>setDateActivation(e.target.value)}
                   style={aboType.debutPremierDuMois&&dateActivation&&new Date(dateActivation).getDate()!==1
-                    ?{borderColor:C.amber,boxShadow:`0 0 0 3px rgba(139,80,0,.12)`}:{}}/>
+                    ?{borderColor:P.amber,boxShadow:`0 0 0 3px rgba(139,80,0,.12)`}:{}}/>
               </div>
               <div>
                 <label className="field-label">📅 Date de la demande de résiliation</label>
@@ -3025,16 +3019,16 @@ function App(){
               const corrige=new Date(saisi.getFullYear(),saisi.getMonth(),1);
               return(
               <div style={{
-                background:"#FFF3D0",border:`1.5px solid ${C.amberMid}`,
+                background:"#FFF3D0",border:`1.5px solid ${P.amberMid}`,
                 borderRadius:10,padding:"10px 14px",marginBottom:16,
                 display:"flex",alignItems:"center",gap:10,fontSize:12,
               }}>
                 <span style={{fontSize:20,flexShrink:0}}>📅</span>
                 <div>
-                  <span style={{fontWeight:700,color:C.amber}}>Correction automatique — </span>
-                  <span style={{color:C.textMid}}>Les abonnements Max Actif / Actif+ débutent toujours le <strong>1er du mois</strong>. La date saisie ({saisi.toLocaleDateString("fr-FR")}) sera recalée au </span>
-                  <strong style={{color:C.amber}}>{corrige.toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"})}</strong>
-                  <span style={{color:C.textMid}}> pour le calcul.</span>
+                  <span style={{fontWeight:700,color:P.amber}}>Correction automatique — </span>
+                  <span style={{color:P.textMid}}>Les abonnements Max Actif / Actif+ débutent toujours le <strong>1er du mois</strong>. La date saisie ({saisi.toLocaleDateString("fr-FR")}) sera recalée au </span>
+                  <strong style={{color:P.amber}}>{corrige.toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"})}</strong>
+                  <span style={{color:P.textMid}}> pour le calcul.</span>
                 </div>
               </div>
               );
@@ -3094,48 +3088,48 @@ function App(){
                 {/* Timeline d'engagement */}
                 <div style={{
                   background:resiliResult.enEngagement?"#FFF3D0":"#F0FFF6",
-                  border:`1.5px solid ${resiliResult.enEngagement?C.amberMid:"#60C898"}`,
+                  border:`1.5px solid ${resiliResult.enEngagement?P.amberMid:"#60C898"}`,
                   borderRadius:14,padding:"16px 18px",
                 }}>
-                  <div style={{fontWeight:700,fontSize:13,color:resiliResult.enEngagement?C.amber:C.green,marginBottom:12}}>
+                  <div style={{fontWeight:700,fontSize:13,color:resiliResult.enEngagement?P.amber:P.green,marginBottom:12}}>
                     {resiliResult.enEngagement
                       ?`⚠️ En période d'engagement initial — ${resiliResult.joursRestants} jour${resiliResult.joursRestants>1?"s":""} restant${resiliResult.joursRestants>1?"s":""}`
                       :"✅ Hors période d'engagement initial — Résiliation libre et sans frais"
                     }
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:resiliResult.finBlocage3mois?"1fr 1fr 1fr":"1fr 1fr",gap:10}}>
-                    <div style={{background:C.surface,borderRadius:10,padding:"11px 13px",border:`1px solid ${resiliResult.activationCorrigee?"#F5D080":C.border}`}}>
-                      <div style={{fontSize:11,fontWeight:700,color:C.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:3}}>Activation</div>
-                      <div style={{fontSize:12,fontWeight:700,color:C.text}}>{fmtDate(resiliResult.activation)}</div>
+                    <div style={{background:P.surface,borderRadius:10,padding:"11px 13px",border:`1px solid ${resiliResult.activationCorrigee?"#F5D080":P.border}`}}>
+                      <div style={{fontSize:11,fontWeight:700,color:P.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:3}}>Activation</div>
+                      <div style={{fontSize:12,fontWeight:700,color:P.text}}>{fmtDate(resiliResult.activation)}</div>
                       {resiliResult.activationCorrigee&&(
-                        <div style={{fontSize:11,color:C.amber,fontWeight:600,marginTop:3}}>
+                        <div style={{fontSize:11,color:P.amber,fontWeight:600,marginTop:3}}>
                           📅 Recalée au 1er du mois<br/>
-                          <span style={{fontWeight:400,color:C.textMuted}}>Saisie : {resiliResult.activationSaisie.toLocaleDateString("fr-FR")}</span>
+                          <span style={{fontWeight:400,color:P.textMuted}}>Saisie : {resiliResult.activationSaisie.toLocaleDateString("fr-FR")}</span>
                         </div>
                       )}
                       {resiliResult.glissant&&(
-                        <div style={{fontSize:11,color:C.purple,fontWeight:600,marginTop:3}}>📆 Mois glissant</div>
+                        <div style={{fontSize:11,color:P.purple,fontWeight:600,marginTop:3}}>📆 Mois glissant</div>
                       )}
                     </div>
                     {resiliResult.finBlocage3mois&&(
                       <div style={{
-                        background:resiliResult.enBlocage?"#FDE8EE":C.surface2,
+                        background:resiliResult.enBlocage?"#FDE8EE":P.surface2,
                         borderRadius:10,padding:"11px 13px",
-                        border:`1px solid ${resiliResult.enBlocage?"#F0A0B0":C.border}`,
+                        border:`1px solid ${resiliResult.enBlocage?"#F0A0B0":P.border}`,
                       }}>
-                        <div style={{fontSize:11,fontWeight:700,color:resiliResult.enBlocage?C.red:C.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:3}}>
+                        <div style={{fontSize:11,fontWeight:700,color:resiliResult.enBlocage?P.red:P.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:3}}>
                           {resiliResult.enBlocage?"🚫 Fin blocage 3 mois":"✅ Fin blocage 3 mois"}
                         </div>
-                        <div style={{fontSize:12,fontWeight:700,color:resiliResult.enBlocage?C.red:C.textMid}}>{fmtDate(resiliResult.finBlocage3mois)}</div>
+                        <div style={{fontSize:12,fontWeight:700,color:resiliResult.enBlocage?P.red:P.textMid}}>{fmtDate(resiliResult.finBlocage3mois)}</div>
                       </div>
                     )}
                     <div style={{
                       background:resiliResult.enEngagement?"#FFF0D0":"#D4F0E4",
                       borderRadius:10,padding:"11px 13px",
-                      border:`1px solid ${resiliResult.enEngagement?C.amberMid:"#60C898"}`,
+                      border:`1px solid ${resiliResult.enEngagement?P.amberMid:"#60C898"}`,
                     }}>
-                      <div style={{fontSize:11,fontWeight:700,color:resiliResult.enEngagement?C.amber:C.green,letterSpacing:1,textTransform:"uppercase",marginBottom:3}}>Fin d'engagement initial</div>
-                      <div style={{fontSize:12,fontWeight:700,color:resiliResult.enEngagement?C.amber:C.green}}>{fmtDate(resiliResult.finEngagementInitial)}</div>
+                      <div style={{fontSize:11,fontWeight:700,color:resiliResult.enEngagement?P.amber:P.green,letterSpacing:1,textTransform:"uppercase",marginBottom:3}}>Fin d'engagement initial</div>
+                      <div style={{fontSize:12,fontWeight:700,color:resiliResult.enEngagement?P.amber:P.green}}>{fmtDate(resiliResult.finEngagementInitial)}</div>
                     </div>
                   </div>
                 </div>
@@ -3149,7 +3143,7 @@ function App(){
                   }}>
                     <div style={{fontSize:36}}>💳</div>
                     <div style={{flex:1}}>
-                      <div style={{fontWeight:700,fontSize:13,color:C.red,marginBottom:3}}>Frais de résiliation anticipée</div>
+                      <div style={{fontWeight:700,fontSize:13,color:P.red,marginBottom:3}}>Frais de résiliation anticipée</div>
                       <div style={{fontSize:11.5,color:"#7A0032",lineHeight:1.6}}>
                         {resiliResult.reconduction
                           ?"Résiliation avant la fin des 12 mois initiaux → prélèvement d'une mensualité supplémentaire"
@@ -3157,13 +3151,13 @@ function App(){
                         }
                       </div>
                       {resiliResult.type==="mensuel_variable"&&!mensualiteEffective&&(
-                        <div style={{fontSize:11,color:C.orange,fontWeight:600,marginTop:4}}>
+                        <div style={{fontSize:11,color:P.orange,fontWeight:600,marginTop:4}}>
                           ⚠️ Renseignez votre mensualité O/D ci-dessus pour calculer le montant exact.
                         </div>
                       )}
                     </div>
                     <div style={{
-                      background:C.red,borderRadius:12,padding:"10px 18px",
+                      background:P.red,borderRadius:12,padding:"10px 18px",
                       textAlign:"center",flexShrink:0,
                     }}>
                       <div style={{color:"rgba(255,255,255,.7)",fontSize:11,fontWeight:600,letterSpacing:.8}}>FRAIS</div>
@@ -3181,7 +3175,7 @@ function App(){
                     background:"#F5EEFF",border:`1px solid #C8A0F0`,
                     borderRadius:12,padding:"12px 16px",
                   }}>
-                    <div style={{fontWeight:700,fontSize:12,color:C.purple,marginBottom:6}}>
+                    <div style={{fontWeight:700,fontSize:12,color:P.purple,marginBottom:6}}>
                       📎 Exonération des frais — Cas exceptionnels (CGV §10.1)
                     </div>
                     <div style={{fontSize:11.5,color:"#3D1A6A",lineHeight:1.7}}>
@@ -3195,11 +3189,11 @@ function App(){
                         {icon:"⚖️",label:"Emprisonnement",sub:"Abonné uniquement"},
                       ].map(({icon,label,sub})=>(
                         <div key={label} style={{
-                          background:C.surface,borderRadius:8,padding:"7px 10px",
+                          background:P.surface,borderRadius:8,padding:"7px 10px",
                           border:`1px solid #D8B4FF`,
                         }}>
-                          <div style={{fontSize:11,fontWeight:700,color:C.purple}}>{icon} {label}</div>
-                          <div style={{fontSize:11,color:C.textMuted,marginTop:2}}>{sub}</div>
+                          <div style={{fontSize:11,fontWeight:700,color:P.purple}}>{icon} {label}</div>
+                          <div style={{fontSize:11,color:P.textMuted,marginTop:2}}>{sub}</div>
                         </div>
                       ))}
                     </div>
@@ -3209,11 +3203,11 @@ function App(){
                 {/* Date d'effet & deadline */}
                 <div className="resil-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                   <div style={{
-                    background:resiliResult.enBlocage?"rgba(91,45,142,.12)":C.purpleLight,
+                    background:resiliResult.enBlocage?"rgba(91,45,142,.12)":P.purpleLight,
                     borderRadius:12,padding:"14px 16px",
-                    border:`1.5px solid ${resiliResult.enBlocage?C.purple:"#D8B4FF"}`,
+                    border:`1.5px solid ${resiliResult.enBlocage?P.purple:"#D8B4FF"}`,
                   }}>
-                    <div style={{fontSize:11,fontWeight:700,color:C.purple,letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>
+                    <div style={{fontSize:11,fontWeight:700,color:P.purple,letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>
                       📬 Deadline résiliation
                       {resiliResult.glissant
                         ?<span style={{fontWeight:400,fontSize:11,display:"block",color:"rgba(91,45,142,.7)",marginTop:1}}>
@@ -3224,10 +3218,10 @@ function App(){
                         </span>
                       }
                     </div>
-                    <div style={{fontSize:13,fontWeight:700,color:C.purple}}>{fmtDate(resiliResult.deadline)}</div>
-                    <div style={{fontSize:11.5,color:C.textMuted,marginTop:4}}>
+                    <div style={{fontSize:13,fontWeight:700,color:P.purple}}>{fmtDate(resiliResult.deadline)}</div>
+                    <div style={{fontSize:11.5,color:P.textMuted,marginTop:4}}>
                       {resiliResult.enBlocage
-                        ?<span style={{color:C.purple,fontWeight:600}}>⚠️ Blocage en cours — deadline projetée</span>
+                        ?<span style={{color:P.purple,fontWeight:600}}>⚠️ Blocage en cours — deadline projetée</span>
                         :resiliResult.demande<=resiliResult.deadline
                           ?"✅ Demande dans les délais → effet M+1"
                           :"⚠️ Demande hors délai → effet M+2"
@@ -3236,7 +3230,7 @@ function App(){
                   </div>
                   <div style={{
                     background:"#0D1B3E",borderRadius:12,padding:"14px 16px",
-                    border:`1.5px solid ${resiliResult.enBlocage?C.purple:"#2A2A5E"}`,
+                    border:`1.5px solid ${resiliResult.enBlocage?P.purple:"#2A2A5E"}`,
                   }}>
                     <div style={{fontSize:11,fontWeight:700,color:"#A0C4FF",letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>
                       📅 Date d'effet de la résiliation
@@ -3274,7 +3268,7 @@ function App(){
               </div>
             )}
             {(!dateActivation||!dateDemande)&&(
-              <div style={{textAlign:"center",padding:"24px",color:C.textMuted,fontSize:12.5,background:C.surface2,borderRadius:12}}>
+              <div style={{textAlign:"center",padding:"24px",color:P.textMuted,fontSize:12.5,background:P.surface2,borderRadius:12}}>
                 ↑ Renseignez la date d'activation et la date de demande pour calculer les délais de résiliation
               </div>
             )}
@@ -3286,7 +3280,7 @@ function App(){
             <div style={{overflowX:"auto"}}>
               <table className="bareme-table">
                 <thead>
-                  <tr style={{background:C.purple,color:"white"}}>
+                  <tr style={{background:P.purple,color:"white"}}>
                     {["Abonnement","Mensualité","Engagement","Résiliation libre dès","Frais anticipés"].map(h=>(
                       <th key={h} style={{color:"white",textAlign:"center"}}>{h}</th>
                     ))}
@@ -3294,20 +3288,20 @@ function App(){
                 </thead>
                 <tbody>
                   {[
-                    {label:"Max Jeune (–26 ans)",  mensualite:"79 €/mois",   engagement:"12 mois",        free:"Mois 13",                frais:"15 €",         color:C.purple, note:"Mois glissant · Blocage 3 mois"},
-                    {label:"Max Senior (+60 ans)", mensualite:"79 €/mois",   engagement:"12 mois",        free:"Mois 13",                frais:"15 €",         color:C.purple, note:"Mois glissant · Blocage 3 mois"},
-                    {label:"Max Actif",             mensualite:"Variable O/D",engagement:"12 mois (tacite)",free:"Après période initiale",frais:"1 mensualité", color:C.blue,   note:"Débute le 1er du mois"},
-                    {label:"Max Actif+",            mensualite:"Variable O/D",engagement:"12 mois (tacite)",free:"Après période initiale",frais:"1 mensualité", color:C.blue,   note:"Débute le 1er du mois"},
+                    {label:"Max Jeune (–26 ans)",  mensualite:"79 €/mois",   engagement:"12 mois",        free:"Mois 13",                frais:"15 €",         color:P.purple, note:"Mois glissant · Blocage 3 mois"},
+                    {label:"Max Senior (+60 ans)", mensualite:"79 €/mois",   engagement:"12 mois",        free:"Mois 13",                frais:"15 €",         color:P.purple, note:"Mois glissant · Blocage 3 mois"},
+                    {label:"Max Actif",             mensualite:"Variable O/D",engagement:"12 mois (tacite)",free:"Après période initiale",frais:"1 mensualité", color:P.blue,   note:"Débute le 1er du mois"},
+                    {label:"Max Actif+",            mensualite:"Variable O/D",engagement:"12 mois (tacite)",free:"Après période initiale",frais:"1 mensualité", color:P.blue,   note:"Débute le 1er du mois"},
                   ].map((row,i)=>(
-                    <tr key={i} style={{background:i%2===0?"white":C.surface2}}>
+                    <tr key={i} style={{background:i%2===0?"white":P.surface2}}>
                       <td style={{fontWeight:600,color:row.color}}>
                         {row.label}
-                        {row.note&&<div style={{fontSize:11,fontWeight:500,color:C.textMuted,marginTop:2}}>{row.note}</div>}
+                        {row.note&&<div style={{fontSize:11,fontWeight:500,color:P.textMuted,marginTop:2}}>{row.note}</div>}
                       </td>
-                      <td style={{textAlign:"center",fontWeight:600,color:C.text,fontSize:12}}>{row.mensualite}</td>
-                      <td style={{textAlign:"center",color:C.textMid}}>{row.engagement}</td>
-                      <td style={{textAlign:"center",color:C.green,fontWeight:600,fontSize:12}}>{row.free}</td>
-                      <td style={{textAlign:"center",fontWeight:700,color:C.red,fontSize:12}}>{row.frais}</td>
+                      <td style={{textAlign:"center",fontWeight:600,color:P.text,fontSize:12}}>{row.mensualite}</td>
+                      <td style={{textAlign:"center",color:P.textMid}}>{row.engagement}</td>
+                      <td style={{textAlign:"center",color:P.green,fontWeight:600,fontSize:12}}>{row.free}</td>
+                      <td style={{textAlign:"center",fontWeight:700,color:P.red,fontSize:12}}>{row.frais}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -3328,32 +3322,32 @@ function App(){
         <div style={{
           position:"fixed",top:0,right:0,bottom:0,zIndex:300,
           width:"min(380px,100vw)",
-          background:C.surface,
-          borderLeft:`1.5px solid ${C.border}`,
+          background:P.surface,
+          borderLeft:`1.5px solid ${P.border}`,
           boxShadow:"-8px 0 32px rgba(0,0,0,.18)",
           display:"flex",flexDirection:"column",
           animation:"fadeSlideIn .22s cubic-bezier(.22,.68,0,1.2)",
         }}>
           {/* Header panneau */}
           <div style={{
-            padding:"14px 16px",borderBottom:`1px solid ${C.border}`,
+            padding:"14px 16px",borderBottom:`1px solid ${P.border}`,
             display:"flex",alignItems:"center",justifyContent:"space-between",
-            background:C.surface,flexShrink:0,
+            background:P.surface,flexShrink:0,
           }}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={C.red} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 16 14"/></svg>
-              <span style={{fontWeight:800,fontSize:14,color:C.text}}>Historique des calculs</span>
-              <span style={{background:C.redLight,color:C.red,borderRadius:10,padding:"1px 8px",fontSize:11,fontWeight:700}}>{history.length}/5</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={P.red} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span style={{fontWeight:800,fontSize:14,color:P.text}}>Historique des calculs</span>
+              <span style={{background:P.redLight,color:P.red,borderRadius:10,padding:"1px 8px",fontSize:11,fontWeight:700}}>{history.length}/5</span>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               {history.length>0&&(
                 <button onClick={()=>{setHistory([]);try{localStorage.removeItem("bd30_history_v25");}catch{}}} style={{
-                  background:"none",border:`1px solid ${C.border}`,color:C.textMuted,
+                  background:"none",border:`1px solid ${P.border}`,color:P.textMuted,
                   borderRadius:6,padding:"3px 9px",fontSize:11,cursor:"pointer",fontFamily:"inherit",
                 }}>Effacer</button>
               )}
               <button onClick={()=>setShowHistory(false)} style={{
-                background:C.surface2,border:`1px solid ${C.border}`,color:C.text,
+                background:P.surface2,border:`1px solid ${P.border}`,color:P.text,
                 borderRadius:8,width:28,height:28,fontSize:15,cursor:"pointer",
                 display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"inherit",
               }}>×</button>
@@ -3362,7 +3356,7 @@ function App(){
           {/* Liste */}
           <div style={{overflowY:"auto",flex:1,padding:"12px 14px",display:"flex",flexDirection:"column",gap:10}}>
             {history.length===0?(
-              <div style={{textAlign:"center",color:C.textMuted,fontSize:13,marginTop:40}}>
+              <div style={{textAlign:"center",color:P.textMuted,fontSize:13,marginTop:40}}>
                 Aucun calcul éligible enregistré
               </div>
             ):history.map((h,i)=>{
@@ -3372,30 +3366,30 @@ function App(){
               return(
                 <div key={h.ts} className="card" style={{
                   padding:"12px 14px",marginBottom:0,
-                  borderLeft:`3px solid ${C.red}`,
+                  borderLeft:`3px solid ${P.red}`,
                   animation:`fadeSlideUp .2s ${i*0.04}s both`,
                 }}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{background:C.redLight,color:C.red,borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:700}}>{h.mode}</span>
-                      <span style={{fontSize:11,color:C.textMuted}}>{dateStr} · {timeStr}</span>
+                      <span style={{background:P.redLight,color:P.red,borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:700}}>{h.mode}</span>
+                      <span style={{fontSize:11,color:P.textMuted}}>{dateStr} · {timeStr}</span>
                     </div>
-                    <span style={{fontWeight:900,fontSize:17,color:C.green,fontVariantNumeric:"tabular-nums",fontFamily:"'Inter','DM Sans',sans-serif"}}>
+                    <span style={{fontWeight:900,fontSize:17,color:P.green,fontVariantNumeric:"tabular-nums",fontFamily:"'Inter','DM Sans',sans-serif"}}>
                       {h.total.toFixed(2)} €
                     </span>
                   </div>
-                  <div style={{fontSize:11,color:C.textMid,marginBottom:4}}>
+                  <div style={{fontSize:11,color:P.textMid,marginBottom:4}}>
                     ⏱ {delayLabel(h.delay)}
                   </div>
                   {h.segments.map((s,j)=>(
                     <div key={j} style={{
-                      fontSize:11,color:C.textMuted,
+                      fontSize:11,color:P.textMuted,
                       padding:"4px 0",
-                      borderTop:j>0?`1px solid ${C.border}`:"none",
+                      borderTop:j>0?`1px solid ${P.border}`:"none",
                       display:"flex",justifyContent:"space-between",alignItems:"center",
                     }}>
                       <span>{s.carrier} · {s.tarif}</span>
-                      <span style={{fontWeight:700,color:C.text}}>
+                      <span style={{fontWeight:700,color:P.text}}>
                         {s.rate!=null?`${s.rate}%`:"—"} → {s.amount.toFixed(2)} €
                       </span>
                     </div>
@@ -3404,7 +3398,7 @@ function App(){
               );
             })}
           </div>
-          <div style={{padding:"10px 14px",borderTop:`1px solid ${C.border}`,fontSize:10.5,color:C.textMuted,textAlign:"center",flexShrink:0}}>
+          <div style={{padding:"10px 14px",borderTop:`1px solid ${P.border}`,fontSize:10.5,color:P.textMuted,textAlign:"center",flexShrink:0}}>
             5 derniers résultats éligibles · stockés localement
           </div>
         </div>
@@ -3454,7 +3448,7 @@ function App(){
       {tab==="frais"&&fraisComputed&&fraisComputed.total>0&&(
         <div role="status" aria-live="polite" aria-atomic="true" style={{
           position:"fixed",bottom:0,left:0,right:0,zIndex:200,
-          background:`linear-gradient(135deg,#002B7A,${C.blue})`,
+          background:`linear-gradient(135deg,#002B7A,${P.blue})`,
           padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,
           boxShadow:"0 -4px 20px rgba(0,0,0,.22)",
         }}>
@@ -3487,10 +3481,10 @@ function App(){
       {/* ── FOOTER ─────────────────────────────────────────────── */}
       <footer style={{
         textAlign:"center",padding:"14px",fontSize:11.5,
-        color:C.textMuted,borderTop:`1px solid ${C.border}`,
-        background:C.surface,letterSpacing:.2,
+        color:P.textMuted,borderTop:`1px solid ${P.border}`,
+        background:P.surface,letterSpacing:.2,
       }}>
-        Calculateur BD30 / G30 · <strong style={{color:C.red}}>version 2.5</strong> · by PDSA · Règlement PRR 2021 · En vigueur au 02/03/2026 · À titre indicatif uniquement
+        Calculateur BD30 / G30 · <strong style={{color:P.red}}>version 2.5</strong> · by PDSA · Règlement PRR 2021 · En vigueur au 02/03/2026 · À titre indicatif uniquement
       </footer>
 
     </div>
