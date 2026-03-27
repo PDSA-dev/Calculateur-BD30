@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="BD30/G30"/>
-  <meta name="theme-color" content="#9B0040"/>
+  <meta name="theme-color" content="#A1006B"/>
   <!-- ── Loading screen styles (critiques, avant React) ─────────── -->
   <style>
     #app-loading {
@@ -30,7 +30,7 @@
     .ld-bar { width: 180px; height: 4px; border-radius: 4px; background: #E2DAD4; overflow: hidden; }
     .ld-bar-fill {
       height: 100%; border-radius: 4px;
-      background: linear-gradient(90deg,#9B0040,#E0306B,#9B0040);
+      background: linear-gradient(90deg,#A1006B,#E0306B,#A1006B);
       background-size: 200% 100%;
       animation: ld-shimmer 1.3s linear infinite;
       width: 60%;
@@ -72,8 +72,8 @@ const { useState, useEffect } = React;
 // ═══════════════════════════════════════════════════════════════════
 
 const CARRIERS = [
-  { id:"tgv_dom",     label:"TGV INOUI domestique",           group:"eligible",     color:"#9B0040" },
-  { id:"tgv_int",     label:"TGV international (filiale)",    group:"eligible",     color:"#9B0040" },
+  { id:"tgv_dom",     label:"TGV INOUI domestique",           group:"eligible",     color:"#A1006B" },
+  { id:"tgv_int",     label:"TGV international (filiale)",    group:"eligible",     color:"#A1006B" },
   { id:"intercites",  label:"Intercités",                     group:"eligible",     color:"#C8005A" },
   { id:"ouigo",       label:"OUIGO",                          group:"eligible",     color:"#E8005D" },
   { id:"ter",         label:"TER (sauf KRONO+)",              group:"eligible",     color:"#2E7D5E" },
@@ -87,11 +87,11 @@ const CARRIERS = [
 const G30_CARRIER_IDS = ["tgv_dom","tgv_int","intercites"];
 
 const TARIFS = [
-  { id:"standard",        label:"Standard",                 color:"#9B0040", desc:"Billet payant — indemnisation en % du prix" },
+  { id:"standard",        label:"Standard",                 color:"#A1006B", desc:"Billet payant — indemnisation en % du prix" },
   { id:"max_loisirs",     label:"Abonnés Max et Forfaits",  color:"#0F6B3C", desc:"Billet à 0€ (abonnement Max, Abo Forfait, Pass Rail…) — G30 en montant fixe BAD" },
-  { id:"prime_titulaire", label:"Billet Prime — Titulaire", color:"#1A3A8F", desc:"Titulaire carte Prime — points fidélité pour le titulaire (LT 2397)" },
+  { id:"prime_titulaire", label:"Billet Prime — Titulaire", color:C.blue, desc:"Titulaire carte Prime — points fidélité pour le titulaire (LT 2397)" },
   { id:"prime_fid_tiers", label:"Billet Prime — FID + Tiers",color:"#5B2D8E",desc:"FID avec billet Prime pour un tiers — double indemnisation : points (FID) + BAD (tiers)" },
-  { id:"prime_gvt_tiers", label:"Billet Prime — GVT + Tiers",color:"#7B3FA0",desc:"GVT avec billet Prime + voyageur tiers — double indemnisation : BAD (GVT) + BAD (tiers)" },
+  { id:"prime_gvt_tiers", label:"Billet Prime — GVT + Tiers",color:C.purple,desc:"GVT avec billet Prime + voyageur tiers — double indemnisation : BAD (GVT) + BAD (tiers)" },
 ];
 
 const RATES_STANDARD = {
@@ -413,29 +413,47 @@ function computeResiliation(dateActivation,dateDemande,mensualite,aboData){
 //  DESIGN SYSTEM
 // ═══════════════════════════════════════════════════════════════════
 
-// ── Palette light ──────────────────────────────────────────────────
+// ── Palette light — Charte officielle SNCF mars 2018 ──────────────
+// Sources RGB : Prune #A1006B · Bleu Primaire #0088CE · Bleu Anthracite #00062F
+//               Vert Pomme #82BE00 · Violet #6E1E78 · Orange #E05206
+//               Jaune Safran #FFB612 · Bleu Canard #009AA6 · Rouge Assist #D52B1E
 const LIGHT = {
-  red:"#9B0040",redDark:"#7A0032",redLight:"#FDE8EE",redMid:"#F5C0D0",
-  blue:"#003DA5",blueLight:"#EBF3FF",blueMid:"#B0CCEE",
-  green:"#0A5C38",greenLight:"#D4F0E4",
-  amber:"#8B5000",amberLight:"#FFF3D0",amberMid:"#F5D080",
-  purple:"#5B2D8E",purpleLight:"#F5EEFF",
-  orange:"#CC3D00",orangeLight:"#FFF0E8",
+  // Prune SNCF (couleur de marque)
+  red:"#A1006B",redDark:"#7A0052",redLight:"#F5E6EF",redMid:"#E0A8C8",
+  // Bleu Primaire SNCF
+  blue:"#0088CE",blueLight:"#E5F4FC",blueMid:"#90CCE8",
+  // Vert Pomme SNCF
+  green:"#82BE00",greenLight:"#EFF7D6",
+  // Orange SNCF → ambre
+  amber:"#E05206",amberLight:"#FDF0E8",amberMid:"#F5C090",
+  // Violet SNCF
+  purple:"#6E1E78",purpleLight:"#F0E6F4",
+  // Orange SNCF
+  orange:"#E05206",orangeLight:"#FDF0E8",
+  // Neutres (Cool Grays SNCF + fond chaud existant)
   bg:"#EDE8E2",surface:"#FFFFFF",surface2:"#F8F4F0",
   border:"#E2DAD4",borderMid:"#CFC6BE",
   text:"#1C1410",textMid:"#5C534C",textMuted:"#6E6460",
 };
-// ── Palette dark ───────────────────────────────────────────────────
+// ── Palette dark — fondée sur Bleu Anthracite SNCF #00062F ─────────
+// Surface : Bleu Anthracite + variations · Accents : palette SNCF éclaircis
 const DARK = {
-  red:"#F0709A",redDark:"#D04F7A",redLight:"#280D1A",redMid:"#3E1628",
-  blue:"#7AB0F5",blueLight:"#0C1A30",blueMid:"#183060",
-  green:"#55D090",greenLight:"#0A2018",
-  amber:"#F5C050",amberLight:"#251800",amberMid:"#3E2C00",
-  purple:"#C09AEA",purpleLight:"#1A0A30",
-  orange:"#FF8A55",orangeLight:"#220E00",
-  bg:"#111318",surface:"#1C1F26",surface2:"#242830",
-  border:"#2C3042",borderMid:"#38404E",
-  text:"#E4DDD6",textMid:"#9A948E",textMuted:"#6A6460",
+  // Prune SNCF éclaircie pour fond sombre
+  red:"#E8609A",redDark:"#C04A7A",redLight:"#18041A",redMid:"#280A28",
+  // Bleu Primaire SNCF lisible sur fond sombre
+  blue:"#4AAEE8",blueLight:"#040A18",blueMid:"#081430",
+  // Vert Pomme SNCF éclairci
+  green:"#A8D840",greenLight:"#081200",
+  // Orange SNCF éclairci
+  amber:"#FFB612",amberLight:"#180E00",amberMid:"#2E1E00",
+  // Violet SNCF éclairci
+  purple:"#C080D8",purpleLight:"#100418",
+  // Orange SNCF éclairci
+  orange:"#FF8844",orangeLight:"#180600",
+  // Fond : Bleu Anthracite #00062F et ses déclinaisons
+  bg:"#00041A",surface:"#040C26",surface2:"#0A1434",
+  border:"#102050",borderMid:"#183060",
+  text:"#E8E4E0",textMid:"#9898A0",textMuted:"#686878",
 };
 // C est mis à jour dynamiquement depuis le composant App (darkMode state)
 let C = LIGHT;
@@ -1150,7 +1168,7 @@ function App(){
   };
 
   const MODE_COLOR=isG30?C.red:C.blue;
-  const tabColors={"retard":C.red,"frais":C.blue,"bareme":"#2A6B2A","dates":"#7B3FA0"};
+  const tabColors={"retard":C.red,"frais":C.blue,"bareme":"#009AA6","dates":"#6E1E78"};
 
   // ── Copier résultat ───────────────────────────────────────────────
   const[copied,setCopied]=useState(null); // null | "retard" | "frais"
@@ -1844,7 +1862,7 @@ function App(){
                             :<em>Hors périmètre BD30</em>
                           }
                           {ri&&ri.type&&r.eligible&&(
-                            <Badge color={r.tarif==="prime_titulaire"?"#1A3A8F":r.tarif==="prime_fid_tiers"?C.purple:r.tarif==="prime_gvt_tiers"?"#7B3FA0":ri.rate>0||ri.fixedAmount?C.red:C.textMuted}>
+                            <Badge color={r.tarif==="prime_titulaire"?C.blue:r.tarif==="prime_fid_tiers"?C.purple:r.tarif==="prime_gvt_tiers"?C.purple:ri.rate>0||ri.fixedAmount?C.red:C.textMuted}>
                               {ri.type}
                             </Badge>
                           )}
@@ -1855,12 +1873,12 @@ function App(){
                         {r.eligible&&ri?(
                           ri.dual==="fid_tiers"
                             ?<div style={{display:"flex",flexDirection:"column",gap:3}}>
-                              <div style={{background:"#DDE6FF",color:"#1A3A8F",fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.points} pts</div>
+                              <div style={{background:"#DDE6FF",color:C.blue,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.points} pts</div>
                               <div style={{background:C.purpleLight,color:C.purple,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.fixedAmount} € BAD</div>
                             </div>
                             :ri.dual==="gvt_tiers"
                             ?<div style={{display:"flex",flexDirection:"column",gap:3}}>
-                              <div style={{background:"#F0E0FF",color:"#7B3FA0",fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.fixedAmount} € BAD</div>
+                              <div style={{background:C.purpleLight,color:C.purple,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.fixedAmount} € BAD</div>
                               <div style={{background:C.purpleLight,color:C.purple,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.fixedAmount} € BAD</div>
                             </div>
                             :ri.points!==null
@@ -1882,7 +1900,7 @@ function App(){
                             </div>
                             :r.tarif==="prime_gvt_tiers"
                             ?<div style={{display:"flex",flexDirection:"column",gap:2,alignItems:"flex-end"}}>
-                              <span style={{fontSize:11,color:"#7B3FA0",fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{ri&&ri.fixedAmount?ri.fixedAmount:0} € GVT</span>
+                              <span style={{fontSize:11,color:C.purple,fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{ri&&ri.fixedAmount?ri.fixedAmount:0} € GVT</span>
                               <span style={{fontSize:11,color:C.purple,fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{ri&&ri.fixedAmount?ri.fixedAmount:0} € tiers</span>
                             </div>
                             :<span style={{fontVariantNumeric:"tabular-nums lining-nums",fontFamily:"'Inter','DM Sans',sans-serif",fontWeight:700,fontSize:15}}>{totalAmt.toFixed(2)} €</span>
@@ -1949,7 +1967,7 @@ function App(){
                   </div>
                   <div style={{padding:"12px 14px",background:C.purpleLight,fontSize:11.5,lineHeight:1.8,color:C.textMid}}>
                     {computed.results.some(r=>r.tarif==="prime_fid_tiers")&&<div style={{marginBottom:8}}><strong style={{color:C.purple}}>🔵 FID + Tiers :</strong> FID → points · Tiers → BAD. 2 demandes distinctes à créer.</div>}
-                    {computed.results.some(r=>r.tarif==="prime_gvt_tiers")&&<div><strong style={{color:"#7B3FA0"}}>🟣 GVT + Tiers :</strong> GVT → BAD · Tiers → BAD. 2 demandes distinctes à créer.</div>}
+                    {computed.results.some(r=>r.tarif==="prime_gvt_tiers")&&<div><strong style={{color:C.purple}}>🟣 GVT + Tiers :</strong> GVT → BAD · Tiers → BAD. 2 demandes distinctes à créer.</div>}
                   </div>
                 </div>
               )}
@@ -2117,9 +2135,9 @@ function App(){
                             <button key={v} onClick={()=>{setSpRenoncement(v);setSpAvis("");setSpCos("");}} style={{
                               flex:1,padding:"9px 14px",borderRadius:10,fontFamily:"inherit",fontSize:12,
                               fontWeight:spRenoncement===v?700:500,cursor:"pointer",
-                              border:`1.5px solid ${spRenoncement===v?(v==="oui"?"#7B3FA0":C.blue):C.border}`,
+                              border:`1.5px solid ${spRenoncement===v?(v==="oui"?C.purple:C.blue):C.border}`,
                               background:spRenoncement===v?(v==="oui"?"#F5EEFF":"#EBF3FF"):"white",
-                              color:spRenoncement===v?(v==="oui"?"#7B3FA0":C.blue):C.textMid
+                              color:spRenoncement===v?(v==="oui"?C.purple:C.blue):C.textMid
                             }}>{l}</button>
                           ))}
                         </div>
@@ -2127,14 +2145,14 @@ function App(){
                     )}
                     {verdict&&verdict.type==="renoncement"&&(
                       <div style={{borderRadius:12,padding:"14px 16px",background:"#F5EEFF",border:"1.5px solid #C89AE0",marginTop:4}}>
-                        <div style={{fontWeight:800,fontSize:13,color:"#7B3FA0",marginBottom:10}}>✅ Renoncement au voyage — Remboursement intégral</div>
+                        <div style={{fontWeight:800,fontSize:13,color:C.purple,marginBottom:10}}>✅ Renoncement au voyage — Remboursement intégral</div>
                         <div style={{fontSize:12,color:"#5A2D80",lineHeight:1.7,marginBottom:10}}>Remboursement intégral du billet, y compris les billets <strong>NE / NR</strong>.</div>
                         <div style={{padding:"10px 14px",borderRadius:10,background:C.surface,border:"1px solid #D4B0F0"}}>
-                          <div style={{fontWeight:700,fontSize:11,color:"#7B3FA0",marginBottom:8,textTransform:"uppercase",letterSpacing:.5}}>🎫 Barème particulier — Billets Prime GVT / Exit (en BAD uniquement)</div>
+                          <div style={{fontWeight:700,fontSize:11,color:C.purple,marginBottom:8,textTransform:"uppercase",letterSpacing:.5}}>🎫 Barème particulier — Billets Prime GVT / Exit (en BAD uniquement)</div>
                           {[["Prime Promo","40 €/trajet/voyageur"],["Billet Prime 2nde","40 €/trajet/voyageur"],["Billet Prime 1ère","50 €/trajet/voyageur"]].map(([type,montant])=>(
                             <div key={type} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:"1px solid #EDE0FF"}}>
                               <span style={{fontSize:12,color:"#5A2D80",fontWeight:500}}>{type}</span>
-                              <span style={{fontSize:13,color:"#7B3FA0",fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{montant}</span>
+                              <span style={{fontSize:13,color:C.purple,fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{montant}</span>
                             </div>
                           ))}
                         </div>
@@ -2481,14 +2499,14 @@ function App(){
 
           {/* Billet Prime */}
           <div className="card" style={{padding:0,overflow:"hidden",borderTop:"3px solid #1A3A8F"}}>
-            <AccHeader id="prime" icon={Icon.ticket} label="G30 — Billet Prime · File FID AV (LT 2397)" color="#1A3A8F" badge="TGV INOUI uniquement"/>
+            <AccHeader id="prime" icon={Icon.ticket} label="G30 — Billet Prime · File FID AV (LT 2397)" color={C.blue} badge="TGV INOUI uniquement"/>
             {openBareme.has("prime")&&(
               <div className="acc-body" style={{padding:"14px 18px"}}>
                 <div style={{fontSize:11,color:C.textMid,marginBottom:10,fontStyle:"italic"}}>File VOYAGE SENIOR OSCAR / GVLC</div>
                 <div style={{overflowX:"auto"}}>
                   <table className="bareme-table" style={{minWidth:420}}>
                     <thead>
-                      <tr style={{background:"#1A3A8F",color:"white"}}>
+                      <tr style={{background:C.blue,color:"white"}}>
                         <th>Retard</th>
                         <th style={{textAlign:"center"}}>Titulaire<br/><span style={{fontSize:10,fontWeight:400}}>Billet Prime personnel</span></th>
                         <th style={{textAlign:"center",background:"#3D1A6E"}}>FID + Tiers<br/><span style={{fontSize:10,fontWeight:400}}>Points + BAD tiers</span></th>
@@ -2505,14 +2523,14 @@ function App(){
                         <tr key={delay} style={{background:i%2===0?"#EBF0FF":"white"}}>
                           <td style={{padding:"9px 12px",fontWeight:700,whiteSpace:"nowrap"}}>{delay}</td>
                           <td style={{padding:"9px 12px",textAlign:"center"}}>
-                            <span style={{fontWeight:800,color:"#1A3A8F",fontSize:13}}>{pts}</span>
+                            <span style={{fontWeight:800,color:C.blue,fontSize:13}}>{pts}</span>
                           </td>
                           <td style={{padding:"9px 12px",textAlign:"center"}}>
-                            <span style={{fontWeight:700,color:"#1A3A8F",fontSize:12}}>{fidPts}</span>
+                            <span style={{fontWeight:700,color:C.blue,fontSize:12}}>{fidPts}</span>
                             <span style={{fontWeight:700,color:C.purple,fontSize:12}}> {fidBad}</span>
                           </td>
                           <td style={{padding:"9px 12px",textAlign:"center"}}>
-                            <span style={{fontWeight:700,color:"#7B3FA0",fontSize:12}}>{gvtBad1}</span>
+                            <span style={{fontWeight:700,color:C.purple,fontSize:12}}>{gvtBad1}</span>
                             <span style={{fontWeight:500,color:C.textMuted,fontSize:11}}> + </span>
                             <span style={{fontWeight:700,color:C.purple,fontSize:12}}>{gvtBad2}</span>
                           </td>
@@ -2908,8 +2926,8 @@ function App(){
           {/* ─── BLOC 2 : RÉSILIATION ──────────────────────────── */}
           {datesSection==="resiliation"&&(<React.Fragment>
           <div className="card">
-            <h2 className="section-title" style={{color:"#7B3FA0"}}>
-              <IconTitle icon={Icon.cal} label="Résiliation abonnement Max" color="#7B3FA0"/>
+            <h2 className="section-title" style={{color:C.purple}}>
+              <IconTitle icon={Icon.cal} label="Résiliation abonnement Max" color={C.purple}/>
             </h2>
             <div className="alert-warn" style={{marginBottom:16,fontSize:12}}>
               <strong>Engagement minimum 12 mois.</strong> Au-delà, résiliation libre et gratuite (Max Jeune/Senior/custom). Pour <strong>Max Actif / Actif+</strong> : reconduction tacite 12 mois ; résiliation anticipée = <strong>1 mensualité supplémentaire</strong> ; gratuite après la période initiale.
@@ -3186,7 +3204,7 @@ function App(){
                   <div style={{
                     background:resiliResult.enBlocage?"rgba(91,45,142,.12)":C.purpleLight,
                     borderRadius:12,padding:"14px 16px",
-                    border:`1.5px solid ${resiliResult.enBlocage?"#7B3FA0":"#D8B4FF"}`,
+                    border:`1.5px solid ${resiliResult.enBlocage?C.purple:"#D8B4FF"}`,
                   }}>
                     <div style={{fontSize:11,fontWeight:700,color:C.purple,letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>
                       📬 Deadline résiliation
@@ -3202,7 +3220,7 @@ function App(){
                     <div style={{fontSize:13,fontWeight:700,color:C.purple}}>{fmtDate(resiliResult.deadline)}</div>
                     <div style={{fontSize:11.5,color:C.textMuted,marginTop:4}}>
                       {resiliResult.enBlocage
-                        ?<span style={{color:"#7B3FA0",fontWeight:600}}>⚠️ Blocage en cours — deadline projetée</span>
+                        ?<span style={{color:C.purple,fontWeight:600}}>⚠️ Blocage en cours — deadline projetée</span>
                         :resiliResult.demande<=resiliResult.deadline
                           ?"✅ Demande dans les délais → effet M+1"
                           :"⚠️ Demande hors délai → effet M+2"
@@ -3211,7 +3229,7 @@ function App(){
                   </div>
                   <div style={{
                     background:"#0D1B3E",borderRadius:12,padding:"14px 16px",
-                    border:`1.5px solid ${resiliResult.enBlocage?"#7B3FA0":"#2A2A5E"}`,
+                    border:`1.5px solid ${resiliResult.enBlocage?C.purple:"#2A2A5E"}`,
                   }}>
                     <div style={{fontSize:11,fontWeight:700,color:"#A0C4FF",letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>
                       📅 Date d'effet de la résiliation
