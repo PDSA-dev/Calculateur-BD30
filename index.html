@@ -255,7 +255,7 @@ const FRAIS_TYPES=[
 ];
 
 let _uid=0;
-const uid=()=>String(++_uid);
+const uid=()=>String(++_uid)+'_'+Date.now();
 const emptySegment=()=>({id:uid(),carrier:"tgv_dom",tarif:"standard",price:""});
 const emptyFrais=()=>({id:uid(),type:"restauration",qty:1,montant:""});
 
