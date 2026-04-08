@@ -1321,6 +1321,45 @@ function App(){
         `  TOTAL remboursable : ${fraisComputed.total.toFixed(2)} €`,
       ];
       text=lines.join("\n");
+    }else if(type==="combined"){
+      const sep="─".repeat(40);
+      const dblSep="═".repeat(40);
+      const now=new Date().toLocaleString("fr-FR");
+      const lines=[
+        `╔══════════════════════════════════════╗`,
+        `   Calculateur BD30/G30 — SNCF Voyageurs`,
+        `   Récapitulatif complet · ${now}`,
+        `╚══════════════════════════════════════╝`,
+      ];
+      if(computed&&computed.eligible){
+        lines.push(``,`${dblSep}`,`  ▶ INDEMNISATION RETARD (G30/BD30)`,`${dblSep}`);
+        lines.push(`  Retard : ${delayLabel(computed.finalDelay)}`);
+        lines.push(`  Mode   : ${isG30?"G30 (segment unique)":"BD30 (multi-segments)"}`);
+        lines.push(sep);
+        computed.results.forEach(r=>{
+          const carrierLabel=r.carrier?r.carrier.label:"—";
+          const tarifLabel=TARIFS.find(t=>t.id===r.tarif)?.label||r.tarif;
+          const prix=(parseFloat(r.price)||0).toFixed(2);
+          const taux=fmtRate(r);
+          lines.push(`  ${carrierLabel}\n  Tarif : ${tarifLabel} · Prix : ${prix} € · ${taux}\n  Indemnité : ${r.amount.toFixed(2)} €`);
+        });
+        lines.push(sep);
+        if(computed.exceptBonus>0) lines.push(`  Bonus exception (${computed.excLvl?.label||""}) : +${computed.exceptBonus.toFixed(2)} €`);
+        lines.push(`  TOTAL G30/BD30 : ${computed.total.toFixed(2)} €  ✓`);
+      }
+      if(fraisComputed&&fraisComputed.total>0){
+        lines.push(``,`${dblSep}`,`  ▶ FRAIS ANNEXES`,`${dblSep}`);
+        lines.push(sep);
+        fraisComputed.results.forEach(r=>{
+          const plafondStr=r.def?.max!=null?` (plafond : ${r.plafond.toFixed(2)} €)`:"";
+          lines.push(`  ${r.def?.label||r.type}\n  Qté : ${r.qty} · Déclaré : ${r.montant.toFixed(2)} €${plafondStr}\n  Remboursé : ${r.rembourse.toFixed(2)} €`);
+        });
+        lines.push(sep);
+        lines.push(`  TOTAL Frais annexes : ${fraisComputed.total.toFixed(2)} €  ✓`);
+      }
+      const grandTotal=((computed&&computed.eligible?computed.total:0)+(fraisComputed&&fraisComputed.total>0?fraisComputed.total:0));
+      lines.push(``,`${"═".repeat(40)}`,`  TOTAL GÉNÉRAL : ${grandTotal.toFixed(2)} €`);
+      text=lines.join("\n");
     }
     if(!text)return;
     navigator.clipboard.writeText(text).then(()=>{
@@ -2140,104 +2179,7 @@ function App(){
         {/* ══════════ TAB FRAIS ══════════ */}
         {tab==="frais"&&(<div id="panel-frais" role="tabpanel" aria-label="Frais annexes">
 
-          {/* Info banner — accordéon */}
-          {(()=>{
-            const infoOpen=openFraisCards.has("fraisInfo");
-            const toggleInfo=()=>setOpenFraisCards(prev=>{const n=new Set(prev);n.has("fraisInfo")?n.delete("fraisInfo"):n.add("fraisInfo");return n;});
-            return(
-              <div style={{background:P.surface,borderRadius:16,border:`1.5px solid ${P.blue}`,overflow:"hidden",marginBottom:12,boxShadow:"0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.06)"}}>
-                <button onClick={toggleInfo} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 18px",background:`linear-gradient(135deg,#002B7A,${P.blue})`,border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
-                  <span style={{display:"flex",alignItems:"center",gap:8,color:"white",fontWeight:700,fontSize:13}}>
-                    <span>ℹ️</span> Frais annexes (§09) — Types acceptés par SNCF Voyageurs sur justificatifs
-                  </span>
-                  <span className={`acc-chevron${infoOpen?" open":""}`} style={{color:"rgba(255,255,255,.7)",flexShrink:0}}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                  </span>
-                </button>
-                {infoOpen&&(
-                  <div style={{padding:"14px 18px"}}>
-                    <div className="three-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:12}}>
-                      {[
-                        {icon:"🏨",title:"Hébergement",text:"Si la poursuite du voyage n'est pas possible le jour même"},
-                        {icon:"🍽️",title:"Restauration",text:"À partir de 60 min de retard et si pas de distribution de panier repas"},
-                        {icon:"🚌",title:"Transport",text:"Autocar, autobus, taxi pour se rendre à l'hôtel/destination et en revenir, ou rachat de billets"},
-                      ].map(({icon,title,text})=>(
-                        <div key={title} style={{padding:"10px 12px",borderRadius:10,background:P.blueLight,border:`1.5px solid ${P.blueMid}`}}>
-                          <div style={{fontSize:11,fontWeight:800,color:P.blue,marginBottom:5}}>{icon} {title}</div>
-                          <div style={{fontSize:11,color:P.text,lineHeight:1.6}}>{text}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{display:"flex",flexDirection:"column",gap:7}}>
-                      <div className="alert-danger"><strong style={{color:"#C00030",textDecoration:"underline"}}>REFUSER</strong> les frais induits par le manquement du contrat de transport — ex. frais de concert raté suite à un retard.</div>
-                      <div className="alert-danger"><strong style={{color:"#C00030",textDecoration:"underline"}}>REFUSER</strong> les frais de rachat ou d'échange de billet d'avion suite à un avion raté en raison d'un retard TGV — <strong>se référer aux Normes AV.</strong></div>
-                      <div className="alert-warn">⚠️ Remboursement sur <strong>factures acquittées</strong> · <strong>Vérifier DigiPEC</strong> avant traitement (sinon MobiPec) · Si client avisé jusqu'à J‑2 : refus de prise en charge</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* ── 1. Billets combinés TRSI ── */}
-          <div className="card" style={{padding:0,overflow:"hidden",borderColor:"#B06A00",borderWidth:1.5}}>
-            {(()=>{
-              const open=openFraisCards.has("trsi");
-              const toggle=()=>setOpenFraisCards(prev=>{const n=new Set(prev);n.has("trsi")?n.delete("trsi"):n.add("trsi");return n;});
-              return(<>
-                <button onClick={toggle} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left",borderBottom:open?"1px solid #E8C06A":"none"}}>
-                  <span style={{display:"flex",alignItems:"center",gap:9}}>
-                    <span style={{fontSize:18}}>🚌</span>
-                    <span style={{fontSize:13,fontWeight:700,color:"#8A5200"}}>Billets combinés avec Transdev (TRSI)</span>
-                  </span>
-                  <span className={`acc-chevron${open?" open":""}`} style={{color:P.textMuted}}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                  </span>
-                </button>
-                {open&&(
-                  <div style={{padding:"16px 18px"}}>
-                    <div style={{fontSize:12,color:P.textMid,marginBottom:14,fontStyle:"italic"}}>
-                      Applicable uniquement aux billets combinés TGV/INT + TRSI. Le billet TRSI est valable toute la journée.
-                    </div>
-                    <div style={{overflowX:"auto"}}>
-                      <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                        <thead>
-                          <tr style={{background:"#FFF4E0"}}>
-                            <th style={{padding:"9px 12px",textAlign:"left",fontWeight:700,color:"#8A5200",borderBottom:"2px solid #F5C96A",width:"60%"}}>Situation</th>
-                            <th style={{padding:"9px 12px",textAlign:"center",fontWeight:700,color:"#8A5200",borderBottom:"2px solid #F5C96A"}}>Traitement</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {[
-                            ["Poursuite du voyage — rachat billet TRSI ou SNCF","refus","Refus"],
-                            ["Renoncement — remboursement billet TGV/INT","accord","Accord"],
-                            ["Renoncement — remboursement billet TRSI","info","Accord ou refus selon date de demande *"],
-                            ["Frais d'hébergement — dernier TRSI du jour manqué","accord","Accord (BAD)"],
-                          ].map(([situation,type,label],i)=>{
-                            const rowBg=i%2===0?"white":"#FAFAFA";
-                            const bc=type==="accord"?{bg:P.greenLight,text:P.green,border:"#60C090"}:type==="refus"?{bg:"#FFF0F0",text:"#B00020",border:"#F0A0A0"}:{bg:"#FFF8E0",text:"#8A5200",border:"#F5C96A"};
-                            return(
-                              <tr key={i} style={{background:rowBg,borderBottom:`1px solid ${P.border}`}}>
-                                <td style={{padding:"10px 12px",color:P.text,lineHeight:1.5}}>{situation}</td>
-                                <td style={{padding:"10px 12px",textAlign:"center"}}>
-                                  <span style={{display:"inline-block",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:700,background:bc.bg,color:bc.text,border:`1px solid ${bc.border}`}}>{label}</span>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                    <div style={{marginTop:10,fontSize:11,color:P.textMuted,fontStyle:"italic",lineHeight:1.6}}>
-                      * Le billet TRSI est valable toute la journée — pas de remboursement possible le jour même du voyage.
-                    </div>
-                  </div>
-                )}
-              </>);
-            })()}
-          </div>
-
-          {/* ── 2. Situation perturbée — Éligibilité des frais ── */}
+          {/* ── 1. Situation perturbée — Éligibilité des frais ── */}
           <div className="card" style={{padding:0,overflow:"hidden",borderColor:P.blue,borderWidth:1.5}}>
             {(()=>{
               const open=openFraisCards.has("sp");
@@ -2374,7 +2316,8 @@ function App(){
             })()}
           </div>
 
-          {/* ── 3. Frais engagés ── */}
+
+          {/* ── 2. Frais engagés ── */}
           <div className="card" style={{padding:0,overflow:"hidden"}}>
             {(()=>{
               const open=openFraisCards.has("frais");
@@ -2493,6 +2436,104 @@ function App(){
               </>);
             })()}
           </div>
+
+          {/* ── 3. Frais annexes (§09) — bannière informative ── */}
+          {(()=>{
+            const infoOpen=openFraisCards.has("fraisInfo");
+            const toggleInfo=()=>setOpenFraisCards(prev=>{const n=new Set(prev);n.has("fraisInfo")?n.delete("fraisInfo"):n.add("fraisInfo");return n;});
+            return(
+              <div style={{background:P.surface,borderRadius:16,border:`1.5px solid ${P.blue}`,overflow:"hidden",marginBottom:12,boxShadow:"0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.06)"}}>
+                <button onClick={toggleInfo} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 18px",background:`linear-gradient(135deg,#002B7A,${P.blue})`,border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                  <span style={{display:"flex",alignItems:"center",gap:8,color:"white",fontWeight:700,fontSize:13}}>
+                    <span>ℹ️</span> Frais annexes (§09) — Types acceptés par SNCF Voyageurs sur justificatifs
+                  </span>
+                  <span className={`acc-chevron${infoOpen?" open":""}`} style={{color:"rgba(255,255,255,.7)",flexShrink:0}}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </span>
+                </button>
+                {infoOpen&&(
+                  <div style={{padding:"14px 18px"}}>
+                    <div className="three-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:12}}>
+                      {[
+                        {icon:"🏨",title:"Hébergement",text:"Si la poursuite du voyage n'est pas possible le jour même"},
+                        {icon:"🍽️",title:"Restauration",text:"À partir de 60 min de retard et si pas de distribution de panier repas"},
+                        {icon:"🚌",title:"Transport",text:"Autocar, autobus, taxi pour se rendre à l'hôtel/destination et en revenir, ou rachat de billets"},
+                      ].map(({icon,title,text})=>(
+                        <div key={title} style={{padding:"10px 12px",borderRadius:10,background:P.blueLight,border:`1.5px solid ${P.blueMid}`}}>
+                          <div style={{fontSize:11,fontWeight:800,color:P.blue,marginBottom:5}}>{icon} {title}</div>
+                          <div style={{fontSize:11,color:P.text,lineHeight:1.6}}>{text}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                      <div className="alert-danger"><strong style={{color:"#C00030",textDecoration:"underline"}}>REFUSER</strong> les frais induits par le manquement du contrat de transport — ex. frais de concert raté suite à un retard.</div>
+                      <div className="alert-danger"><strong style={{color:"#C00030",textDecoration:"underline"}}>REFUSER</strong> les frais de rachat ou d'échange de billet d'avion suite à un avion raté en raison d'un retard TGV — <strong>se référer aux Normes AV.</strong></div>
+                      <div className="alert-warn">⚠️ Remboursement sur <strong>factures acquittées</strong> · <strong>Vérifier DigiPEC</strong> avant traitement (sinon MobiPec) · Si client avisé jusqu'à J‑2 : refus de prise en charge</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ── 4. Billets combinés TRSI ── */}
+          <div className="card" style={{padding:0,overflow:"hidden",borderColor:"#B06A00",borderWidth:1.5}}>
+            {(()=>{
+              const open=openFraisCards.has("trsi");
+              const toggle=()=>setOpenFraisCards(prev=>{const n=new Set(prev);n.has("trsi")?n.delete("trsi"):n.add("trsi");return n;});
+              return(<>
+                <button onClick={toggle} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left",borderBottom:open?"1px solid #E8C06A":"none"}}>
+                  <span style={{display:"flex",alignItems:"center",gap:9}}>
+                    <span style={{fontSize:18}}>🚌</span>
+                    <span style={{fontSize:13,fontWeight:700,color:"#8A5200"}}>Billets combinés avec Transdev (TRSI)</span>
+                  </span>
+                  <span className={`acc-chevron${open?" open":""}`} style={{color:P.textMuted}}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </span>
+                </button>
+                {open&&(
+                  <div style={{padding:"16px 18px"}}>
+                    <div style={{fontSize:12,color:P.textMid,marginBottom:14,fontStyle:"italic"}}>
+                      Applicable uniquement aux billets combinés TGV/INT + TRSI. Le billet TRSI est valable toute la journée.
+                    </div>
+                    <div style={{overflowX:"auto"}}>
+                      <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                        <thead>
+                          <tr style={{background:"#FFF4E0"}}>
+                            <th style={{padding:"9px 12px",textAlign:"left",fontWeight:700,color:"#8A5200",borderBottom:"2px solid #F5C96A",width:"60%"}}>Situation</th>
+                            <th style={{padding:"9px 12px",textAlign:"center",fontWeight:700,color:"#8A5200",borderBottom:"2px solid #F5C96A"}}>Traitement</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            ["Poursuite du voyage — rachat billet TRSI ou SNCF","refus","Refus"],
+                            ["Renoncement — remboursement billet TGV/INT","accord","Accord"],
+                            ["Renoncement — remboursement billet TRSI","info","Accord ou refus selon date de demande *"],
+                            ["Frais d'hébergement — dernier TRSI du jour manqué","accord","Accord (BAD)"],
+                          ].map(([situation,type,label],i)=>{
+                            const rowBg=i%2===0?"white":"#FAFAFA";
+                            const bc=type==="accord"?{bg:P.greenLight,text:P.green,border:"#60C090"}:type==="refus"?{bg:"#FFF0F0",text:"#B00020",border:"#F0A0A0"}:{bg:"#FFF8E0",text:"#8A5200",border:"#F5C96A"};
+                            return(
+                              <tr key={i} style={{background:rowBg,borderBottom:`1px solid ${P.border}`}}>
+                                <td style={{padding:"10px 12px",color:P.text,lineHeight:1.5}}>{situation}</td>
+                                <td style={{padding:"10px 12px",textAlign:"center"}}>
+                                  <span style={{display:"inline-block",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:700,background:bc.bg,color:bc.text,border:`1px solid ${bc.border}`}}>{label}</span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div style={{marginTop:10,fontSize:11,color:P.textMuted,fontStyle:"italic",lineHeight:1.6}}>
+                      * Le billet TRSI est valable toute la journée — pas de remboursement possible le jour même du voyage.
+                    </div>
+                  </div>
+                )}
+              </>);
+            })()}
+          </div>
+
         </div>)}
 
         {/* ══════════ TAB BARÈME ══════════ */}
@@ -3629,6 +3670,20 @@ function App(){
             </div>
             {/* Droite : copier + montant */}
             <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+              {/* Bouton "Copier tout" — uniquement quand G30 + Frais actifs simultanément */}
+              {showBoth&&(
+                <button onClick={()=>copyResult("combined")} title="Copier le récapitulatif complet (G30 + Frais)" style={{
+                  background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.3)",
+                  color:"white",borderRadius:8,padding:"5px 11px",fontSize:11,fontWeight:700,
+                  cursor:"pointer",display:"flex",alignItems:"center",gap:5,fontFamily:"inherit",
+                  transition:"background .15s",
+                }}>
+                  {copied==="combined"
+                    ?<><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Copié !</>
+                    :"📋 Tout copier"
+                  }
+                </button>
+              )}
               <button onClick={()=>copyResult(primary)} title="Copier le résultat" style={{
                 background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.3)",
                 color:"white",borderRadius:8,padding:"5px 11px",fontSize:11,fontWeight:700,
