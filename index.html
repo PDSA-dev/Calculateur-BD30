@@ -256,7 +256,7 @@ const FRAIS_TYPES=[
 
 let _uid=0;
 const uid=()=>String(++_uid)+'_'+Date.now();
-const emptySegment=()=>({id:uid(),carrier:"tgv_dom",tarif:"standard",price:""});
+const emptySegment=()=>({id:uid(),carrier:"",tarif:"",price:""});
 const emptyFrais=()=>({id:uid(),type:"restauration",qty:1,montant:""});
 
 const TABS=[
@@ -1583,10 +1583,12 @@ function App(){
                     <div>
                       <label className="field-label">Transporteur</label>
                       {isG30
-                        ?<select aria-label="Transporteur" value={seg.carrier} onChange={e=>updateSegment(seg.id,"carrier",e.target.value)} style={{...sel}}>
+                        ?<select aria-label="Transporteur" value={seg.carrier} onChange={e=>updateSegment(seg.id,"carrier",e.target.value)} style={{...sel,color:seg.carrier===""?P.textMuted:P.text}}>
+                          <option value="" disabled>— Sélectionner un transporteur —</option>
                           {availableCarriers.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}
                         </select>
-                        :<select aria-label="Transporteur" value={seg.carrier} onChange={e=>updateSegment(seg.id,"carrier",e.target.value)} style={{...sel,borderColor:isNE?"#F0C090":P.border,background:isNE?"#FFF3E0":"white"}}>
+                        :<select aria-label="Transporteur" value={seg.carrier} onChange={e=>updateSegment(seg.id,"carrier",e.target.value)} style={{...sel,borderColor:isNE?"#F0C090":P.border,background:isNE?"#FFF3E0":"white",color:seg.carrier===""?P.textMuted:P.text}}>
+                          <option value="" disabled>— Sélectionner un transporteur —</option>
                           <optgroup label="✅ Éligibles BD30">{CARRIERS.filter(c=>c.group==="eligible").map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</optgroup>
                           <optgroup label="❌ Hors périmètre BD30">{CARRIERS.filter(c=>c.group==="non_eligible").map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</optgroup>
                         </select>
@@ -1651,7 +1653,7 @@ function App(){
                           </label>
                         ))}
                       </div>
-                      <div style={{fontSize:11.5,color:P.textMuted,lineHeight:1.5}}>{tarifInfo.desc}</div>
+                      {tarifInfo&&<div style={{fontSize:11.5,color:P.textMuted,lineHeight:1.5}}>{tarifInfo.desc}</div>}
                     </div>
                   )}
                 </div>
@@ -3539,15 +3541,17 @@ function App(){
       {tab==="retard"&&(()=>{
         const step1=segments.length>0&&segments[0].carrier!=="";
         const step2=step1&&segments[0].tarif!=="";
-        const step3=step2&&finalDelay>0;
-        const step4=!!(computed&&computed.eligible);
-        const allDone=step4;
+        const step3=step2&&segments.some(s=>parseFloat(s.price)>0||["max_loisirs","prime_titulaire","prime_fid_tiers","prime_gvt_tiers"].includes(s.tarif));
+        const step4=step3&&finalDelay>0;
+        const step5=!!(computed&&computed.eligible);
+        const allDone=step5;
         if(allDone) return null; /* masqué quand résultat éligible visible dans le bandeau bas */
         const steps=[
           {label:"Train",   done:step1},
           {label:"Tarif",   done:step2},
-          {label:"Retard",  done:step3},
-          {label:"Résultat",done:step4},
+          {label:"Prix",    done:step3},
+          {label:"Retard",  done:step4},
+          {label:"Résultat",done:step5},
         ];
         const doneCount=steps.filter(s=>s.done).length;
         return(
@@ -3566,13 +3570,13 @@ function App(){
               fontSize:9.5,fontWeight:800,letterSpacing:.8,
               textTransform:"uppercase",color:P.textMuted,
               marginBottom:2,textAlign:"center",
-            }}>G30 — {doneCount}/4</div>
+            }}>G30 — {doneCount}/5</div>
 
             {/* Barre de fond animée */}
             <div style={{position:"relative",height:3,borderRadius:3,background:P.border,overflow:"hidden",marginBottom:4}}>
               <div style={{
                 position:"absolute",left:0,top:0,bottom:0,borderRadius:3,
-                width:`${(doneCount/4)*100}%`,
+                width:`${(doneCount/5)*100}%`,
                 background:P.green,
                 transition:"width .4s cubic-bezier(.22,.68,0,1.2)",
               }}/>
