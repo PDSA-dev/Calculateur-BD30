@@ -1279,91 +1279,51 @@ function App(){
 
   const copyResult=(type)=>{
     let text="";
-    if(type==="retard"&&computed){
-      const sep="─".repeat(40);
-      const lines=[
-        `╔══════════════════════════════════════╗`,
-        `   Calculateur BD30/G30 — SNCF Voyageurs`,
-        `   ${new Date().toLocaleString("fr-FR")}`,
-        `╚══════════════════════════════════════╝`,
-        ``,
-        `Retard    : ${delayLabel(computed.finalDelay)}`,
-        `Mode      : ${isG30?"G30 (segment unique)":"BD30 (multi-segments)"}`,
-        ``,
-        sep,
-        ...computed.results.map(r=>{
-          const carrierLabel=r.carrier?r.carrier.label:"—";
-          const tarifLabel=TARIFS.find(t=>t.id===r.tarif)?.label||r.tarif;
-          const prix=(parseFloat(r.price)||0).toFixed(2);
-          const taux=fmtRate(r);
-          const montant=r.amount.toFixed(2);
-          return`  ${carrierLabel}\n  Tarif    : ${tarifLabel}\n  Prix billet : ${prix} €\n  Taux/règle  : ${taux}\n  Indemnité   : ${montant} €`;
-        }),
-        sep,
-      ];
+    // ── helpers note interne ──
+    const fmtPrix=v=>`${(parseFloat(v)||0).toFixed(2)} €`;
+    const noteRetardLines=()=>{
+      if(!computed)return[];
+      const lines=[];
+      lines.push(`Retard : ${delayLabel(computed.finalDelay)}`);
+      computed.results.forEach(r=>{
+        const carrier=r.carrier?r.carrier.label:"—";
+        const tarif=TARIFS.find(t=>t.id===r.tarif)?.label||r.tarif;
+        const prix=fmtPrix(r.price);
+        const taux=fmtRate(r);
+        const indemnite=`${r.amount.toFixed(2)} €`;
+        lines.push(`Transporteur : ${carrier} ; Tarif : ${tarif} ; Prix : ${prix} ; Taux : ${taux} ; Indemnité : ${indemnite}`);
+      });
       if(computed.exceptBonus>0){
-        lines.push(`  Bonus exception (${computed.excLvl?.label||""}) : +${computed.exceptBonus.toFixed(2)} €`);
-        lines.push(sep);
+        lines.push(`Bonus exception (${computed.excLvl?.label||""}) : +${computed.exceptBonus.toFixed(2)} €`);
       }
-      lines.push(`  TOTAL : ${computed.total.toFixed(2)} €`);
-      lines.push(`  ${computed.eligible?"✓ Éligible — seuil 4 € atteint":"✗ Sous le seuil 4 €"}`);
-      text=lines.join("\n");
+      lines.push(`Total indemnisation : ${computed.total.toFixed(2)} €${computed.eligible?"":" (sous seuil 4 €)"}`);
+      return lines;
+    };
+    const noteFraisLines=()=>{
+      if(!fraisComputed||fraisComputed.total<=0)return[];
+      const lines=[];
+      lines.push(`Frais annexes :`);
+      fraisComputed.results.forEach(r=>{
+        const label=r.def?.label||r.type;
+        const plafondStr=r.def?.max!=null?` ; Plafond : ${r.plafond.toFixed(2)} €`:"";
+        lines.push(`${label} ; Qté : ${r.qty} ; Déclaré : ${r.montant.toFixed(2)} €${plafondStr} ; Remboursé : ${r.rembourse.toFixed(2)} €`);
+      });
+      lines.push(`Total frais annexes : ${fraisComputed.total.toFixed(2)} €`);
+      return lines;
+    };
+    if(type==="retard"&&computed){
+      text=noteRetardLines().join("\n");
     }else if(type==="frais"&&fraisComputed){
-      const sep="─".repeat(40);
-      const lines=[
-        `╔══════════════════════════════════════╗`,
-        `   Frais Annexes — SNCF Voyageurs`,
-        `   ${new Date().toLocaleString("fr-FR")}`,
-        `╚══════════════════════════════════════╝`,
-        ``,
-        sep,
-        ...fraisComputed.results.map(r=>{
-          const plafondStr=r.def?.max!=null?` (plafond : ${r.plafond.toFixed(2)} €)`:"";
-          return`  ${r.def?.label||r.type}\n  Qté : ${r.qty} · Montant déclaré : ${r.montant.toFixed(2)} €${plafondStr}\n  Remboursé : ${r.rembourse.toFixed(2)} €`;
-        }),
-        sep,
-        `  TOTAL remboursable : ${fraisComputed.total.toFixed(2)} €`,
-      ];
-      text=lines.join("\n");
+      text=noteFraisLines().join("\n");
     }else if(type==="combined"){
-      const sep="─".repeat(40);
-      const dblSep="═".repeat(40);
-      const now=new Date().toLocaleString("fr-FR");
-      const lines=[
-        `╔══════════════════════════════════════╗`,
-        `   Calculateur BD30/G30 — SNCF Voyageurs`,
-        `   Récapitulatif complet · ${now}`,
-        `╚══════════════════════════════════════╝`,
-      ];
-      if(computed&&computed.eligible){
-        lines.push(``,`${dblSep}`,`  ▶ INDEMNISATION RETARD (G30/BD30)`,`${dblSep}`);
-        lines.push(`  Retard : ${delayLabel(computed.finalDelay)}`);
-        lines.push(`  Mode   : ${isG30?"G30 (segment unique)":"BD30 (multi-segments)"}`);
-        lines.push(sep);
-        computed.results.forEach(r=>{
-          const carrierLabel=r.carrier?r.carrier.label:"—";
-          const tarifLabel=TARIFS.find(t=>t.id===r.tarif)?.label||r.tarif;
-          const prix=(parseFloat(r.price)||0).toFixed(2);
-          const taux=fmtRate(r);
-          lines.push(`  ${carrierLabel}\n  Tarif : ${tarifLabel} · Prix : ${prix} € · ${taux}\n  Indemnité : ${r.amount.toFixed(2)} €`);
-        });
-        lines.push(sep);
-        if(computed.exceptBonus>0) lines.push(`  Bonus exception (${computed.excLvl?.label||""}) : +${computed.exceptBonus.toFixed(2)} €`);
-        lines.push(`  TOTAL G30/BD30 : ${computed.total.toFixed(2)} €  ✓`);
-      }
-      if(fraisComputed&&fraisComputed.total>0){
-        lines.push(``,`${dblSep}`,`  ▶ FRAIS ANNEXES`,`${dblSep}`);
-        lines.push(sep);
-        fraisComputed.results.forEach(r=>{
-          const plafondStr=r.def?.max!=null?` (plafond : ${r.plafond.toFixed(2)} €)`:"";
-          lines.push(`  ${r.def?.label||r.type}\n  Qté : ${r.qty} · Déclaré : ${r.montant.toFixed(2)} €${plafondStr}\n  Remboursé : ${r.rembourse.toFixed(2)} €`);
-        });
-        lines.push(sep);
-        lines.push(`  TOTAL Frais annexes : ${fraisComputed.total.toFixed(2)} €  ✓`);
-      }
+      const parts=[];
+      const rl=noteRetardLines();
+      if(rl.length)parts.push(...rl);
+      const fl=noteFraisLines();
+      if(fl.length){if(parts.length)parts.push("");parts.push(...fl);}
       const grandTotal=((computed&&computed.eligible?computed.total:0)+(fraisComputed&&fraisComputed.total>0?fraisComputed.total:0));
-      lines.push(``,`${"═".repeat(40)}`,`  TOTAL GÉNÉRAL : ${grandTotal.toFixed(2)} €`);
-      text=lines.join("\n");
+      if(rl.length&&fl.length){parts.push("");parts.push(`Total général : ${grandTotal.toFixed(2)} €`);}
+      text=parts.join("\n");
     }
     if(!text)return;
     navigator.clipboard.writeText(text).then(()=>{
