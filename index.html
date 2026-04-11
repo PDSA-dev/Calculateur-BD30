@@ -1086,9 +1086,10 @@ function App(){
   const changeCarrier=(segId,carrierId)=>setSegments(s=>s.map(x=>{
     if(x.id!==segId)return x;
     const avail=getTarifsForCarrier(carrierId).map(t=>t.id);
+    const autoTarif=avail.length===1?avail[0]:"";
     return{...x,carrier:carrierId,
-      tarif:avail.includes(x.tarif)?x.tarif:"",
-      passengers:(x.passengers||[]).map(p=>({...p,tarif:avail.includes(p.tarif)?p.tarif:""})),
+      tarif:avail.includes(x.tarif)?x.tarif:autoTarif,
+      passengers:(x.passengers||[]).map(p=>({...p,tarif:avail.includes(p.tarif)?p.tarif:autoTarif})),
     };
   }));
   const toggleMultiPass=(segId)=>setSegments(s=>s.map(x=>{
@@ -1100,8 +1101,8 @@ function App(){
     // Tarif par défaut pour pass.2+ : auto-"standard" si c'est la seule option (OUIGO/TER)
     const availIds=getTarifsForCarrier(x.carrier).filter(t=>t.id!=="groupe").map(t=>t.id);
     const defaultTarif=availIds.length===1?availIds[0]:"";
-    // Passager 1 : garde le tarif+prix déjà saisis
-    const p1={...(existing[0]||emptyPassenger()),tarif:x.tarif||"",price:x.price||""};
+    // Passager 1 : garde le tarif+prix déjà saisis, applique auto-tarif si vide
+    const p1={...(existing[0]||emptyPassenger()),tarif:x.tarif||defaultTarif||"",price:x.price||""};
     // Passagers 2+ : tarif auto (si unique dispo) + prix vide
     const rest=Array.from({length:Math.max(0,n-1)},(_,i)=>
       existing[i+1]||{...emptyPassenger(),tarif:defaultTarif,price:""}
