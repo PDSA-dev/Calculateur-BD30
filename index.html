@@ -3,14 +3,23 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Calculateur BD30/G30 — SNCF Voyageurs</title>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <title>Calculateur BD30 / G30 — PDSA</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body { margin:0; padding:0; }
+    #root { min-height:100vh; }
+    #app-loading {
+      display:flex; align-items:center; justify-content:center;
+      min-height:100vh; font-family:sans-serif; color:#A1006B; font-size:14px;
+    }
+  </style>
 </head>
 <body>
+  <div id="app-loading">Chargement du calculateur…</div>
   <div id="root"></div>
-  <script type="text/babel">
+  <script type="text/babel" data-presets="react">
 
 const { useState, useEffect } = React;
 
@@ -77,26 +86,28 @@ const C = LIGHT;
 // ═══════════════════════════════════════════════════════════════════
 
 const CARRIERS = [
-  { id:"tgv_dom",     label:"TGV INOUI domestique",           group:"eligible",     color:"#A1006B" },
-  { id:"tgv_int",     label:"TGV international (filiale)",    group:"eligible",     color:"#A1006B" },
-  { id:"intercites",  label:"Intercités",                     group:"eligible",     color:"#C8005A" },
-  { id:"ouigo",       label:"OUIGO",                          group:"eligible",     color:"#E8005D" },
-  { id:"ter",         label:"TER (sauf KRONO+)",              group:"eligible",     color:"#2E7D5E" },
-  { id:"ter_krono",   label:"TER NOMAD KRONO+",               group:"eligible",     color:"#1A5C48" },
-  { id:"eurostar",    label:"Eurostar / Thalys Family",       group:"non_eligible", color:"#555"    },
-  { id:"transilien",  label:"Transilien",                     group:"non_eligible", color:"#555"    },
-  { id:"coop_int",    label:"TGV en coopération (intl.)",     group:"non_eligible", color:"#555"    },
-  { id:"ter_autocar", label:"TER Autocar (Commande init.)",   group:"non_eligible", color:"#555"    },
-  { id:"trsi",        label:"TRSI (Transdev Rail Sud Intm.)", group:"non_eligible", color:"#CC3D00" },
+  { id:"tgv_dom",       label:"TGV INOUI domestique",           group:"eligible",     color:"#A1006B" },
+  { id:"tgv_int",       label:"TGV international (filiale)",    group:"eligible",     color:"#A1006B" },
+  { id:"intercites",    label:"Intercités",                     group:"eligible",     color:"#C8005A" },
+  { id:"intercites_eco",label:"Intercités 100% Éco",            group:"eligible",     color:"#9C2060" },
+  { id:"ouigo",         label:"OUIGO",                          group:"eligible",     color:"#E8005D" },
+  { id:"ter",           label:"TER (sauf KRONO+)",              group:"eligible",     color:"#2E7D5E" },
+  { id:"ter_krono",     label:"TER NOMAD KRONO+",               group:"eligible",     color:"#1A5C48" },
+  { id:"eurostar",      label:"Eurostar / Thalys Family",       group:"non_eligible", color:"#555"    },
+  { id:"transilien",    label:"Transilien",                     group:"non_eligible", color:"#555"    },
+  { id:"coop_int",      label:"TGV en coopération (intl.)",     group:"non_eligible", color:"#555"    },
+  { id:"ter_autocar",   label:"TER Autocar (Commande init.)",   group:"non_eligible", color:"#555"    },
+  { id:"trsi",          label:"TRSI (Transdev Rail Sud Intm.)", group:"non_eligible", color:"#CC3D00" },
 ];
-const G30_CARRIER_IDS = ["tgv_dom","tgv_int","intercites"];
+const G30_CARRIER_IDS = ["tgv_dom","tgv_int","intercites","intercites_eco"];
 
 const TARIFS = [
-  { id:"standard",        label:"Standard",                 color:"#A1006B", desc:"Billet payant — indemnisation en % du prix" },
-  { id:"max_loisirs",     label:"Abonnés Max et Forfaits",  color:"#0F6B3C", desc:"Billet à 0€ (abonnement Max, Abo Forfait, Pass Rail…) — G30 en montant fixe BAD" },
-  { id:"prime_titulaire", label:"Billet Prime — Titulaire", color:C.blue, desc:"Titulaire carte Prime — points fidélité pour le titulaire (LT 2397)" },
-  { id:"prime_fid_tiers", label:"Billet Prime — FID + Tiers",color:"#5B2D8E",desc:"FID avec billet Prime pour un tiers — double indemnisation : points (FID) + BAD (tiers)" },
-  { id:"prime_gvt_tiers", label:"Billet Prime — GVT + Tiers",color:C.purple,desc:"GVT avec billet Prime + voyageur tiers — double indemnisation : BAD (GVT) + BAD (tiers)" },
+  { id:"standard",            label:"Standard",                 color:"#A1006B", desc:"Billet payant — indemnisation en % du prix" },
+  { id:"carte_liberte_billet",label:"Carte Liberté (billet)",  color:"#005E9E", desc:"Billet à tarif réduit Carte Liberté — taux standard avec plancher 5 € minimum par passager (≥ 30 min)" },
+  { id:"max_loisirs",         label:"Abonnés Max et Forfaits",  color:"#0F6B3C", desc:"Billet à 0€ (abonnement Max, Abo Forfait, Pass Rail…) — G30 en montant fixe BAD" },
+  { id:"prime_titulaire",     label:"Billet Prime — Titulaire", color:C.blue,    desc:"Titulaire carte Prime — points fidélité pour le titulaire (LT 2397)" },
+  { id:"prime_fid_tiers",     label:"Billet Prime — FID + Tiers",color:"#5B2D8E",desc:"FID avec billet Prime pour un tiers — double indemnisation : points (FID) + BAD (tiers)" },
+  { id:"prime_gvt_tiers",     label:"Billet Prime — GVT + Tiers",color:C.purple, desc:"GVT avec billet Prime + voyageur tiers — double indemnisation : BAD (GVT) + BAD (tiers)" },
 ];
 // ── Tarifs filtrés par transporteur ──────────────────────────────────────────
 const TARIFS_OUIGO=[
@@ -113,12 +124,14 @@ function getTarifsForCarrier(carrierId){
 }
 
 const RATES_STANDARD = {
-  tgv_dom:    [[30,59,25,"BAD uniquement"],[60,119,25,"BAD/Virement"],[120,179,50,"BAD/Virement"],[180,239,75,"BAD/Virement"],[240,Infinity,75,"BAD/Virement"]],
-  tgv_int:    [[30,59,25,"BAD uniquement"],[60,119,25,"BAD/Virement"],[120,179,50,"BAD/Virement"],[180,239,50,"BAD/Virement"],[240,Infinity,50,"BAD/Virement"]],
-  intercites: [[30,59,25,"BAD uniquement"],[60,119,25,"BAD/Virement"],[120,179,50,"BAD/Virement"],[180,239,75,"BAD/Virement"],[240,Infinity,75,"BAD/Virement"]],
-  ouigo:      [[30,59,0,null],[60,119,25,"BAD recréditable"],[120,179,50,"BAD recréditable"],[180,239,50,"BAD recréditable"],[240,Infinity,100,"BAD recréditable"]],
-  ter:        [[30,59,0,null],[60,119,25,"BAD/Virement"],[120,179,50,"BAD/Virement"],[180,239,50,"BAD/Virement"],[240,Infinity,50,"BAD/Virement"]],
-  ter_krono:  [[30,59,25,"BAD/Virement"],[60,119,25,"BAD/Virement"],[120,179,50,"BAD/Virement"],[180,239,75,"BAD/Virement"],[240,Infinity,75,"BAD/Virement"]],
+  tgv_dom:       [[30,59,25,"BAD uniquement"],[60,119,25,"BAD/Virement"],[120,179,50,"BAD/Virement"],[180,239,75,"BAD/Virement"],[240,Infinity,75,"BAD/Virement"]],
+  tgv_int:       [[30,59,25,"BAD uniquement"],[60,119,25,"BAD/Virement"],[120,179,50,"BAD/Virement"],[180,239,50,"BAD/Virement"],[240,Infinity,50,"BAD/Virement"]],
+  intercites:    [[30,59,25,"BAD uniquement"],[60,119,25,"BAD/Virement"],[120,179,50,"BAD/Virement"],[180,239,75,"BAD/Virement"],[240,Infinity,75,"BAD/Virement"]],
+  // Intercités 100% Éco : G30 applicable à partir de 60 min (pas de compensation 30–59 min)
+  intercites_eco:[[30,59,0,null],[60,119,25,"BAD/Virement"],[120,179,50,"BAD/Virement"],[180,239,75,"BAD/Virement"],[240,Infinity,75,"BAD/Virement"]],
+  ouigo:         [[30,59,0,null],[60,119,25,"BAD recréditable"],[120,179,50,"BAD recréditable"],[180,239,50,"BAD recréditable"],[240,Infinity,100,"BAD recréditable"]],
+  ter:           [[30,59,0,null],[60,119,25,"BAD/Virement"],[120,179,50,"BAD/Virement"],[180,239,50,"BAD/Virement"],[240,Infinity,50,"BAD/Virement"]],
+  ter_krono:     [[30,59,25,"BAD/Virement"],[60,119,25,"BAD/Virement"],[120,179,50,"BAD/Virement"],[180,239,75,"BAD/Virement"],[240,Infinity,75,"BAD/Virement"]],
 };
 const RATES_MAX_LOISIRS = {
   default: [[30,179,5,"BAD — 5€"],[180,239,10,"BAD — 10€"],[240,Infinity,20,"BAD — 20€"]],
@@ -167,10 +180,15 @@ function getRateInfo(carrierId,tarif,delayMin){
 }
 
 function computeSegmentAmount(price,tarif,rateInfo){
-  if(tarif==="max_loisirs"||tarif==="prime_fid_tiers"||tarif==="prime_gvt_tiers")return rateInfo.fixedAmount||0;
+  if(tarif==="max_loisirs"||tarif==="prime_fid_tiers")return rateInfo.fixedAmount||0;
+  // GVT = 2 demandes BAD distinctes (GVT + tiers) → montant × 2
+  if(tarif==="prime_gvt_tiers")return (rateInfo.fixedAmount||0)*2;
   if(tarif==="prime_titulaire")return 0;
   if(rateInfo.rate===0)return 0;
-  return(parseFloat(price)||0)*rateInfo.rate/100;
+  const pct=(parseFloat(price)||0)*rateInfo.rate/100;
+  // Carte Liberté billet : taux standard avec plancher 5 € si retard ≥ 30 min
+  if(tarif==="carte_liberte_billet")return Math.max(5,pct);
+  return pct;
 }
 
 function computeDelayMinutes(theo,reel){
@@ -1086,10 +1104,9 @@ function App(){
   const changeCarrier=(segId,carrierId)=>setSegments(s=>s.map(x=>{
     if(x.id!==segId)return x;
     const avail=getTarifsForCarrier(carrierId).map(t=>t.id);
-    const autoTarif=avail.length===1?avail[0]:"";
     return{...x,carrier:carrierId,
-      tarif:avail.includes(x.tarif)?x.tarif:autoTarif,
-      passengers:(x.passengers||[]).map(p=>({...p,tarif:avail.includes(p.tarif)?p.tarif:autoTarif})),
+      tarif:avail.includes(x.tarif)?x.tarif:"",
+      passengers:(x.passengers||[]).map(p=>({...p,tarif:avail.includes(p.tarif)?p.tarif:""})),
     };
   }));
   const toggleMultiPass=(segId)=>setSegments(s=>s.map(x=>{
@@ -1101,8 +1118,8 @@ function App(){
     // Tarif par défaut pour pass.2+ : auto-"standard" si c'est la seule option (OUIGO/TER)
     const availIds=getTarifsForCarrier(x.carrier).filter(t=>t.id!=="groupe").map(t=>t.id);
     const defaultTarif=availIds.length===1?availIds[0]:"";
-    // Passager 1 : garde le tarif+prix déjà saisis, applique auto-tarif si vide
-    const p1={...(existing[0]||emptyPassenger()),tarif:x.tarif||defaultTarif||"",price:x.price||""};
+    // Passager 1 : garde le tarif+prix déjà saisis
+    const p1={...(existing[0]||emptyPassenger()),tarif:x.tarif||"",price:x.price||""};
     // Passagers 2+ : tarif auto (si unique dispo) + prix vide
     const rest=Array.from({length:Math.max(0,n-1)},(_,i)=>
       existing[i+1]||{...emptyPassenger(),tarif:defaultTarif,price:""}
@@ -1155,7 +1172,9 @@ function App(){
       }
     }
     const total=baseTotal+exceptBonus;
-    const newComputed={results,baseTotal,total,exceptBonus,finalDelay,eligible:total>=4,hasNonEligible:results.some(r=>!r.eligible),excLvl,exceptOnSegId};
+    // Éligible si montant ≥ 4€ OU si au moins un segment a des points FID prime à verser
+    const hasPrimePoints=results.some(r=>r.eligible&&(r.rateInfo?.points>0||(r.passengersResult||[]).some(p=>p.rateInfo?.points>0)));
+    const newComputed={results,baseTotal,total,exceptBonus,finalDelay,eligible:total>=4||hasPrimePoints,hasNonEligible:results.some(r=>!r.eligible),excLvl,exceptOnSegId};
     setComputed(newComputed);
   },[segments,finalDelay,exceptLevel,exceptSegmentId]);
 
@@ -1265,15 +1284,15 @@ function App(){
 
   const copyResult=(type)=>{
     // Helper : label de tarif (couvre Standard, Max, Prime, Groupe)
-    const getTarifLabel=(id)=>[...TARIFS,{id:"groupe",label:"Tarif Groupe"}].find(t=>t.id===id)?.label||id||"";
+    const getTarifLabel=(id)=>[...TARIFS,{id:"groupe",label:"Tarif Groupe"}].find(t=>t.id===id)?.label||id||"—";
     // Ligne par segment — gère même tarif, nbPass, multiPassMode et groupe
     const segLine=(r)=>{
-      const carrier=r.carrier?r.carrier.label:"";
+      const carrier=r.carrier?r.carrier.label:"—";
       if(r.multiPassMode&&r.passengersResult&&r.passengersResult.length>0){
         const passLines=r.passengersResult.map((p,pi)=>{
           const tl=getTarifLabel(p.tarif);
           const ri=p.rateInfo;
-          const rateStr=ri?.rate>0?`${ri.rate}%`:ri?.fixedAmount!=null?`${ri.fixedAmount}€ BAD`:ri?.points!=null?`${ri.points} pts`:"";
+          const rateStr=ri?.rate>0?`${ri.rate}%`:ri?.fixedAmount!=null?`${ri.fixedAmount}€ BAD`:ri?.points!=null?`${ri.points} pts`:"—";
           return`  Pass.${pi+1} · ${tl} · ${p.price>0?p.price.toFixed(2)+"€":"0€"} · ${rateStr} → ${p.amount.toFixed(2)}€`;
         }).join("\n");
         return`${carrier}\n${passLines}`;
@@ -1283,7 +1302,7 @@ function App(){
       const isMax=["max_loisirs","prime_titulaire","prime_fid_tiers","prime_gvt_tiers"].includes(r.tarif);
       const prixStr=r.tarif==="groupe"?`${r.price.toFixed(2)}€ groupe`:isMax?"0€":n>1?`${n}×${r.price.toFixed(2)}€`:`${r.price.toFixed(2)}€`;
       const ri=r.rateInfo;
-      const rateStr=ri?.rate>0?`${ri.rate}%`:ri?.fixedAmount!=null?`${ri.fixedAmount}€ BAD`:ri?.points!=null?`${ri.points} pts`:"";
+      const rateStr=ri?.rate>0?`${ri.rate}%`:ri?.fixedAmount!=null?`${ri.fixedAmount}€ BAD`:ri?.points!=null?`${ri.points} pts`:"—";
       return`${carrier} · ${tl} · ${prixStr} · ${rateStr} → ${r.amount.toFixed(2)}€`;
     };
     let text="";
@@ -1667,6 +1686,7 @@ function App(){
                               {isMax&&<span style={{color:["prime_titulaire","prime_fid_tiers","prime_gvt_tiers"].includes(seg.tarif)?P.blue:P.green,marginLeft:3}}>
                                 {["prime_titulaire","prime_fid_tiers","prime_gvt_tiers"].includes(seg.tarif)?"— Prime":"— 0€"}
                               </span>}
+                              {seg.tarif==="carte_liberte_billet"&&<span style={{color:"#005E9E",marginLeft:3,fontSize:10}}>— min 5€</span>}
                             </label>
                             <input type="number" min="0" step="0.01"
                               aria-label="Prix du billet (€)"
@@ -1676,6 +1696,12 @@ function App(){
                               disabled={isMax}
                               style={{...inp,background:isMax?P.surface2:"white",color:isMax?P.textMuted:P.text,fontFamily:"'Inter','DM Sans',sans-serif",fontWeight:600,fontSize:14}}
                             />
+                            {seg.tarif==="carte_liberte_billet"&&seg.price&&parseFloat(seg.price)>0&&(()=>{
+                              const ri=getRateInfo(seg.carrier,seg.tarif,finalDelay||0);
+                              const pct=(parseFloat(seg.price)||0)*(ri.rate||0)/100;
+                              const floor=pct<5&&(ri.rate||0)>0;
+                              return floor?(<div style={{fontSize:10.5,color:"#005E9E",marginTop:3}}>⚑ Plancher 5€ appliqué (calcul {pct.toFixed(2)}€)</div>):null;
+                            })()}
                           </div>
                           {/* Nb passagers (sauf groupe et max) */}
                           {!isGroupe&&!isMax&&(
@@ -2003,6 +2029,103 @@ function App(){
             </div>
           )}
 
+          {/* ── Billet Direct TGV/IC + OUIGO ── */}
+          {(()=>{
+            const hasTgvIc=segments.some(s=>["tgv_dom","tgv_int","intercites","intercites_eco"].includes(s.carrier));
+            const hasOuigo=segments.some(s=>s.carrier==="ouigo");
+            const hasTer=segments.some(s=>["ter","ter_krono"].includes(s.carrier));
+            if(!hasOuigo)return null;
+            // TER + OUIGO — hors périmètre RCAD
+            if(hasTer&&!hasTgvIc) return(
+              <div className="card card-anim" style={{border:`2px solid ${P.orange}`,background:P.orangeLight,animationDelay:".05s"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                  <span style={{fontSize:20}}>⚠️</span>
+                  <h2 className="section-title" style={{margin:0,color:P.orange}}>TER + OUIGO — Hors périmètre RCAD</h2>
+                  <span style={{fontSize:11,background:"#FFD5C0",color:P.orange,padding:"2px 8px",borderRadius:10,fontWeight:700,border:"1px solid #E0A080"}}>FILE DÉDIÉE</span>
+                </div>
+                <div style={{fontSize:12,lineHeight:1.75,color:"#7A3000",padding:"10px 14px",background:"#FFE0C0",borderRadius:8,border:"1px solid #E0A080"}}>
+                  La combinaison <strong>TER + OUIGO</strong> ne relève pas du dispositif RCAD automatique.<br/>
+                  <strong style={{color:P.orange}}>➜ Rediriger vers la file : « Demandes BD30 manuelles TER-OUIGO »</strong>
+                </div>
+              </div>
+            );
+            // TGV/IC + OUIGO — carte complète
+            if(hasTgvIc) return(
+              <div className="card card-anim" style={{border:`2px solid ${P.blue}`,background:P.blueLight,padding:0,overflow:"hidden",animationDelay:".05s"}}>
+                {/* Header */}
+                <div style={{background:`linear-gradient(135deg,#005E9E,${P.blue})`,padding:"12px 18px",display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:18}}>🚄➕🟣</span>
+                  <div>
+                    <div style={{color:"white",fontWeight:800,fontSize:13}}>Billet Direct TGV / Intercités + OUIGO</div>
+                    <div style={{color:"rgba(255,255,255,.7)",fontSize:11,marginTop:1}}>Règle en vigueur depuis le 7 juin 2023 — retard à l'arrivée finale uniquement</div>
+                  </div>
+                  <span style={{marginLeft:"auto",fontSize:10,fontWeight:700,padding:"2px 9px",borderRadius:10,background:"rgba(255,255,255,.2)",color:"white",border:"1px solid rgba(255,255,255,.35)"}}>RT 5828</span>
+                </div>
+                <div style={{padding:"14px 18px"}}>
+                  {/* Règle commune */}
+                  <div style={{fontSize:11.5,color:P.blue,lineHeight:1.7,padding:"8px 12px",background:"rgba(0,136,206,.08)",borderRadius:8,border:"1px solid rgba(0,136,206,.2)",marginBottom:14}}>
+                    📌 <strong>Principe :</strong> Le retard pris en compte est celui constaté à <strong>l'arrivée finale</strong> du voyageur, quel que soit le segment perturbé. Le RCAD prend en charge l'ensemble du billet direct.
+                  </div>
+                  {/* Config 1 */}
+                  <div style={{marginBottom:12,borderRadius:10,overflow:"hidden",border:`1.5px solid ${P.blue}`}}>
+                    <div style={{background:P.blue,padding:"9px 14px",color:"white",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:8}}>
+                      <span>🟦</span> Config 1 — TGV retardé → OUIGO manqué
+                      <span style={{marginLeft:"auto",fontSize:10,opacity:.8,fontWeight:400}}>RT 5828</span>
+                    </div>
+                    <div style={{padding:"12px 14px",background:"white",fontSize:11.5,lineHeight:1.8,color:P.textMid}}>
+                      <div style={{marginBottom:8}}><strong style={{color:P.text}}>Traitement :</strong> RCAD compense <strong>l'intégralité du billet direct</strong> (TGV + OUIGO). Le retard retenu est celui du <strong>train de report</strong> à l'arrivée finale.</div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                        <div style={{padding:"8px 10px",borderRadius:8,background:P.blueLight,border:`1px solid ${P.blueMid}`}}>
+                          <div style={{fontWeight:700,fontSize:11,color:P.blue,marginBottom:4}}>Retard &lt; 60 min</div>
+                          <div style={{fontSize:11,color:P.textMid}}>BAD uniquement</div>
+                        </div>
+                        <div style={{padding:"8px 10px",borderRadius:8,background:P.blueLight,border:`1px solid ${P.blueMid}`}}>
+                          <div style={{fontWeight:700,fontSize:11,color:P.blue,marginBottom:4}}>Retard ≥ 60 min</div>
+                          <div style={{fontSize:11,color:P.textMid}}>BAD ou virement</div>
+                        </div>
+                      </div>
+                      <div style={{fontSize:11,padding:"7px 10px",borderRadius:7,background:"#FFF8E0",border:"1px solid #F5D060",color:"#7A5000"}}>
+                        💬 <strong>Si OUIGO aussi retardé :</strong> informer le client que la compensation OUIGO sera gérée en proactif par OUIGO. Ne pas cumuler les deux indemnisations.
+                      </div>
+                    </div>
+                  </div>
+                  {/* Config 2 */}
+                  <div style={{marginBottom:12,borderRadius:10,overflow:"hidden",border:"1.5px solid #009AA6"}}>
+                    <div style={{background:"#009AA6",padding:"9px 14px",color:"white",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:8}}>
+                      <span>🟩</span> Config 2 — TGV à l'heure, retard OUIGO seul
+                    </div>
+                    <div style={{padding:"12px 14px",background:"white",fontSize:11.5,lineHeight:1.8,color:P.textMid}}>
+                      <div style={{marginBottom:8}}><strong style={{color:P.text}}>Traitement :</strong> RCAD intervient sur le segment <strong>TGV / Intercités uniquement</strong>. OUIGO gère son propre retard en proactif.</div>
+                      <div style={{fontSize:11,padding:"7px 10px",borderRadius:7,background:"#E6F7F8",border:"1px solid #80D0D8",color:"#005C62"}}>
+                        ✅ G30 calculée sur le segment TGV/IC. Aucune action RCAD sur le segment OUIGO retardé.
+                      </div>
+                    </div>
+                  </div>
+                  {/* RT 6373 */}
+                  <div style={{borderRadius:10,overflow:"hidden",border:"1.5px solid #6E1E78"}}>
+                    <div style={{background:"#6E1E78",padding:"9px 14px",color:"white",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:8}}>
+                      <span>⚖️</span> Règle anti-cumul — RT 6373
+                    </div>
+                    <div style={{padding:"12px 14px",background:P.purpleLight,fontSize:11.5,lineHeight:1.8,color:P.textMid}}>
+                      <div style={{marginBottom:6}}><strong style={{color:"#6E1E78"}}>Si une compensation OUIGO a déjà été versée :</strong></div>
+                      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                        <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                          <span style={{flexShrink:0,background:"#B00020",color:"white",borderRadius:20,padding:"1px 8px",fontSize:10,fontWeight:700,marginTop:2}}>REFUS</span>
+                          <span>Compensation OUIGO déjà versée <strong>≥ G30 due</strong> sur le billet direct → refus total, ne pas re-compenser.</span>
+                        </div>
+                        <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                          <span style={{flexShrink:0,background:P.green,color:"white",borderRadius:20,padding:"1px 8px",fontSize:10,fontWeight:700,marginTop:2}}>COMPLÉMENT</span>
+                          <span>Compensation OUIGO versée <strong>&lt; G30 due</strong> → verser uniquement la différence en BAD.</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+            return null;
+          })()}
+
           {/* ── Indemnisation exceptionnelle ── */}
           <div className="card card-anim" style={{border:`2px solid #A1006B`,background:P.surface,animationDelay:".12s"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
@@ -2120,7 +2243,7 @@ function App(){
                         </div>
                         <div style={{fontSize:11,color:P.textMid,marginTop:3,display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
                           {r.eligible
-                            ?(r.tarif==="max_loisirs"?"Abonnés Max / Forfait — 0€":r.tarif==="prime_titulaire"?"Billet Prime — Titulaire":r.tarif==="prime_fid_tiers"?"Billet Prime — FID + Tiers":r.tarif==="prime_gvt_tiers"?"Billet Prime — GVT + Tiers":(()=>{
+                            ?(r.tarif==="max_loisirs"?"Abonnés Max / Forfait — 0€":r.tarif==="prime_titulaire"?"Billet Prime — Titulaire":r.tarif==="prime_fid_tiers"?"Billet Prime — FID + Tiers":r.tarif==="prime_gvt_tiers"?"Billet Prime — GVT + Tiers":r.tarif==="carte_liberte_billet"?"Carte Liberté — plancher 5 € min":(()=>{
                               if(r.multiPassMode&&r.passengersResult?.length>0){
                                 const tot=r.passengersResult.reduce((s,p)=>s+p.price,0);
                                 return`${tot.toFixed(2)} € (${r.passengersResult.length} pass.)`;
@@ -2607,28 +2730,135 @@ function App(){
             })()}
           </div>
 
+          {/* ── 5. Billet Direct TGV / Intercités + OUIGO ── */}
+          <div className="card" style={{padding:0,overflow:"hidden",borderColor:"#005E9E",borderWidth:1.5}}>
+            {(()=>{
+              const open=openFraisCards.has("bdOuigo");
+              const toggle=()=>setOpenFraisCards(prev=>{const n=new Set(prev);n.has("bdOuigo")?n.delete("bdOuigo"):n.add("bdOuigo");return n;});
+              return(<>
+                <button onClick={toggle} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left",borderBottom:open?"1px solid #90C8E8":"none"}}>
+                  <span style={{display:"flex",alignItems:"center",gap:9}}>
+                    <span style={{fontSize:18}}>🚄</span>
+                    <span style={{fontSize:13,fontWeight:700,color:"#005E9E"}}>Billet Direct TGV / Intercités + OUIGO</span>
+                    <span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:"#E0F0FF",color:"#005E9E",border:"1px solid #90C8E8"}}>RT 5828</span>
+                  </span>
+                  <span className={`acc-chevron${open?" open":""}`} style={{color:P.textMuted}}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </span>
+                </button>
+                {open&&(
+                  <div style={{padding:"16px 18px"}}>
+                    <div style={{fontSize:11.5,color:"#005E9E",lineHeight:1.7,padding:"8px 12px",background:"#E0F0FF",borderRadius:8,border:"1px solid #90C8E8",marginBottom:14}}>
+                      Depuis le <strong>7 juin 2023</strong> — retard apprécié à l'arrivée finale. RCAD compense l'intégralité du billet direct.
+                    </div>
+
+                    {/* Config 1 */}
+                    <div style={{fontWeight:700,fontSize:12,color:"#005E9E",marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{fontSize:14}}>🟦</span> Config 1 — TGV retardé → OUIGO manqué
+                    </div>
+                    <div style={{overflowX:"auto",marginBottom:14}}>
+                      <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                        <thead>
+                          <tr style={{background:"#005E9E",color:"white"}}>
+                            <th style={{padding:"8px 12px",textAlign:"left",fontWeight:700}}>Situation</th>
+                            <th style={{padding:"8px 12px",textAlign:"center",fontWeight:700}}>Mode BAD</th>
+                            <th style={{padding:"8px 12px",textAlign:"center",fontWeight:700}}>Traitement frais</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            ["Retard arrivée finale < 60 min","BAD uniquement","Pas de frais annexes"],
+                            ["Retard arrivée finale ≥ 60 min","BAD ou virement","Frais annexes éligibles (barème Annexe 1)"],
+                            ["OUIGO aussi retardé","BAD RCAD uniquement","OUIGO gère son proactif — ne pas cumuler"],
+                          ].map(([sit,bad,frais],i)=>(
+                            <tr key={i} style={{background:i%2===0?"white":"#F0F8FF",borderBottom:`1px solid ${P.border}`}}>
+                              <td style={{padding:"9px 12px",color:P.text,lineHeight:1.5}}>{sit}</td>
+                              <td style={{padding:"9px 12px",textAlign:"center",fontWeight:700,color:"#005E9E"}}>{bad}</td>
+                              <td style={{padding:"9px 12px",textAlign:"center",fontSize:11,color:P.textMid}}>{frais}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Config 2 */}
+                    <div style={{fontWeight:700,fontSize:12,color:"#009AA6",marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{fontSize:14}}>🟩</span> Config 2 — TGV à l'heure, retard OUIGO seul
+                    </div>
+                    <div style={{overflowX:"auto",marginBottom:14}}>
+                      <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                        <thead>
+                          <tr style={{background:"#009AA6",color:"white"}}>
+                            <th style={{padding:"8px 12px",textAlign:"left",fontWeight:700}}>Périmètre</th>
+                            <th style={{padding:"8px 12px",textAlign:"center",fontWeight:700}}>Action RCAD</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            ["Segment TGV / Intercités","G30 standard — compensation RCAD"],
+                            ["Segment OUIGO retardé","Proactif OUIGO — hors RCAD"],
+                          ].map(([perimetre,action],i)=>(
+                            <tr key={i} style={{background:i%2===0?"white":"#F0FAFA",borderBottom:`1px solid ${P.border}`}}>
+                              <td style={{padding:"9px 12px",color:P.text}}>{perimetre}</td>
+                              <td style={{padding:"9px 12px",textAlign:"center",fontWeight:600,color:i===0?"#009AA6":P.textMuted}}>{action}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* RT 6373 anti-cumul */}
+                    <div style={{borderRadius:8,overflow:"hidden",border:"1.5px solid #6E1E78",marginBottom:14}}>
+                      <div style={{background:"#6E1E78",padding:"8px 12px",color:"white",fontWeight:700,fontSize:11.5,display:"flex",alignItems:"center",gap:6}}>
+                        ⚖️ Règle anti-cumul — RT 6373
+                      </div>
+                      <div style={{padding:"10px 12px",background:P.purpleLight,fontSize:11.5,lineHeight:1.8,color:P.textMid}}>
+                        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                          <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                            <span style={{flexShrink:0,background:"#B00020",color:"white",borderRadius:20,padding:"1px 7px",fontSize:10,fontWeight:700,marginTop:1}}>REFUS</span>
+                            <span>Compensation OUIGO déjà versée <strong>≥ G30 due</strong> sur le billet → refus, ne pas re-compenser.</span>
+                          </div>
+                          <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                            <span style={{flexShrink:0,background:P.green,color:"white",borderRadius:20,padding:"1px 7px",fontSize:10,fontWeight:700,marginTop:1}}>COMPLÉMENT</span>
+                            <span>Compensation OUIGO versée <strong>&lt; G30 due</strong> → verser la différence uniquement (BAD).</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* TER + OUIGO */}
+                    <div style={{borderRadius:8,padding:"10px 12px",background:"#FFF4E0",border:"1.5px solid #E8C060",fontSize:11.5,lineHeight:1.7,color:"#7A4000"}}>
+                      <strong style={{color:P.orange}}>⚠️ TER + OUIGO :</strong> Hors périmètre RCAD — rediriger vers la file <strong>« Demandes BD30 manuelles TER-OUIGO »</strong>.
+                    </div>
+                  </div>
+                )}
+              </>);
+            })()}
+          </div>
+
         </div>)}
 
         {/* ══════════ TAB BARÈME ══════════ */}
         {tab==="bareme"&&(()=>{
           const BAREME_COLS=[
-            {id:"tgv_dom",  label:"TGV INOUI / Intercités", color:P.red},
-            {id:"tgv_int",  label:"TGV intl. (filiale)",    color:"#C8005A"},
-            {id:"ouigo",    label:"OUIGO",                  color:"#E8005D"},
-            {id:"ter",      label:"TER",                    color:"#2E7D5E"},
-            {id:"ter_krono",label:"TER KRONO+",             color:"#1A5C48"},
+            {id:"tgv_dom",       label:"TGV INOUI / Intercités", color:P.red},
+            {id:"tgv_int",       label:"TGV intl. (filiale)",    color:"#C8005A"},
+            {id:"intercites_eco",label:"Intercités 100% Éco",    color:"#9C2060"},
+            {id:"ouigo",         label:"OUIGO",                  color:"#E8005D"},
+            {id:"ter",           label:"TER",                    color:"#2E7D5E"},
+            {id:"ter_krono",     label:"TER KRONO+",             color:"#1A5C48"},
           ];
           const BAREME_ROWS=[
             {label:"30–59 min",  min:30,  max:59,
-              vals:{tgv_dom:"25% BAD seul",tgv_int:"25% BAD seul",ouigo:"0%",ter:"0%",ter_krono:"25%"}},
+              vals:{tgv_dom:"25% BAD seul",tgv_int:"25% BAD seul",intercites_eco:"0%",ouigo:"0%",ter:"0%",ter_krono:"25%"}},
             {label:"60–119 min", min:60,  max:119,
-              vals:{tgv_dom:"25%",tgv_int:"25%",ouigo:"25%",ter:"25%",ter_krono:"25%"}},
+              vals:{tgv_dom:"25%",tgv_int:"25%",intercites_eco:"25%",ouigo:"25%",ter:"25%",ter_krono:"25%"}},
             {label:"120–179 min",min:120, max:179,
-              vals:{tgv_dom:"50%",tgv_int:"50%",ouigo:"50%",ter:"50%",ter_krono:"50%"}},
+              vals:{tgv_dom:"50%",tgv_int:"50%",intercites_eco:"50%",ouigo:"50%",ter:"50%",ter_krono:"50%"}},
             {label:"180–239 min",min:180, max:239,
-              vals:{tgv_dom:"75%",tgv_int:"50%",ouigo:"50%",ter:"50%",ter_krono:"75%"}},
+              vals:{tgv_dom:"75%",tgv_int:"50%",intercites_eco:"75%",ouigo:"50%",ter:"50%",ter_krono:"75%"}},
             {label:"≥ 240 min",  min:240, max:Infinity,
-              vals:{tgv_dom:"75%",tgv_int:"50%",ouigo:"100%",ter:"50%",ter_krono:"75%"}},
+              vals:{tgv_dom:"75%",tgv_int:"50%",intercites_eco:"75%",ouigo:"100%",ter:"50%",ter_krono:"75%"}},
           ];
           const visCols=baremeFilter==="all"?BAREME_COLS:BAREME_COLS.filter(c=>c.id===baremeFilter);
 
@@ -2730,6 +2960,8 @@ function App(){
                 <div style={{marginTop:10,fontSize:11,color:P.textMuted,display:"flex",gap:12,flexWrap:"wrap",padding:"4px 0"}}>
                   <span>⚑ BAD seul = 30–59 min (TGV INOUI & Intercités)</span>
                   <span>· OUIGO 0% pour 30–59 min</span>
+                  <span>· <strong>Intercités 100% Éco</strong> : G30 dès 60 min (pas de compensation 30–59 min)</span>
+                  <span>· <strong>Carte Liberté billet</strong> : taux standard avec plancher <strong>5 € minimum</strong> par passager (≥ 30 min)</span>
                   <span>· Seuil minimum : <strong>4€</strong></span>
                 </div>
               </div>
@@ -3918,7 +4150,7 @@ function App(){
         color:P.textMuted,borderTop:`1px solid ${P.border}`,
         background:P.surface,letterSpacing:.2,
       }}>
-        Calculateur BD30 / G30 · <strong style={{color:P.red}}>version 2.7</strong> · by PDSA · Règlement PRR 2021 · En vigueur au 02/03/2026 · À titre indicatif uniquement
+        Calculateur BD30 / G30 · <strong style={{color:P.red}}>version 2.9</strong> · by PDSA · Règlement PRR 2021 · En vigueur au 02/03/2026 · À titre indicatif uniquement
       </footer>
 
     </div>
@@ -3928,6 +4160,18 @@ function App(){
 ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 
   
+  </script>
+  <script>
+    // Masquer le loader dès que React a rendu
+    const obs = new MutationObserver(() => {
+      const root = document.getElementById('root');
+      if (root && root.children.length > 0) {
+        const loader = document.getElementById('app-loading');
+        if (loader) loader.style.display = 'none';
+        obs.disconnect();
+      }
+    });
+    obs.observe(document.getElementById('root'), { childList: true, subtree: true });
   </script>
 </body>
 </html>
