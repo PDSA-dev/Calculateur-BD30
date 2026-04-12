@@ -213,6 +213,7 @@ const FRAIS_TYPES=[
   {id:"hotel_grande",          label:"Hébergement — Grande ville (Tous tarifs)",icon:"🏙️",unit:"passager", max:150, note:"Si la poursuite du voyage n'est pas possible le jour même — Paris, Lyon, Marseille, Bordeaux, Lille, Nantes, Strasbourg…"},
   {id:"hotel_province_optimum",label:"Hébergement — Province (Optimum+)",     icon:"⭐", unit:"passager", max:300, note:"Si la poursuite du voyage n'est pas possible le jour même — Autres villes — Optimum+"},
   {id:"hotel_grande_optimum",  label:"Hébergement — Grande ville (Optimum+)", icon:"⭐", unit:"passager", max:300, note:"Si la poursuite du voyage n'est pas possible le jour même — Paris, Lyon, Nantes, Marseille… — Optimum+"},
+  {id:"rachat_billets",          label:"Rachat billets / frais d'échange",      icon:"🎟️", unit:"dossier",  max:null,note:"Remboursement du surcoût de rachat ou des frais d'échange engagés suite à la perturbation — sur justificatif — pas de plafond fixe (à valider selon dossier)"},
 ];
 
 let _uid=0;
@@ -1189,8 +1190,8 @@ function App(){
       const def=FRAIS_TYPES.find(t=>t.id===f.type);
       const montant=parseFloat(f.montant)||0;
       const qty=f.type==="taxi_nuit"||f.type==="taxi_optimum"?1:(parseInt(f.qty)||1);
-      const plafond=def.max*qty;
-      return{...f,def,montant,qty,plafond,rembourse:Math.min(montant,plafond)};
+      const plafond=def.max!=null?def.max*qty:null;
+      return{...f,def,montant,qty,plafond,rembourse:plafond!=null?Math.min(montant,plafond):montant};
     });
     setFraisComputed({results,total:results.reduce((a,r)=>a+r.rembourse,0)});
   },[fraisList]);
@@ -1917,30 +1918,38 @@ function App(){
               </div>
             </div>
 
-            {/* Slider — secondaire */}
+            {/* Saisie manuelle en minutes — champ numérique */}
             <details style={{marginBottom:14}}>
               <summary style={{fontSize:11,color:P.textMuted,cursor:"pointer",userSelect:"none",marginBottom:8,fontWeight:600}}>
-                ▸ Ajuster précisément (slider)
+                ▸ Saisir le retard manuellement (en minutes)
               </summary>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8,marginTop:8}}>
-                <span style={{fontSize:12,color:P.textMid,fontWeight:600}}>Retard manuel</span>
-                <span style={{fontSize:20,fontWeight:800,color:timeDelay!==null?P.textMuted:P.red,fontVariantNumeric:"tabular-nums"}}>{fmtMin(sliderDelay)}</span>
-              </div>
-              <input type="range" min="0" max="360" step="1"
-                aria-label="Retard en minutes (0 à 360)"
-                aria-valuetext={`${sliderDelay} minutes`}
-                value={sliderDelay}
-                onChange={e=>{setSliderDelay(Number(e.target.value));setHeureTheo("");setHeureReel("");}}
-                style={{opacity:timeDelay!==null?0.35:1,marginBottom:6}}
-              />
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:P.textMuted}}>
-                {[0,60,120,180,240,300,360].map(v=><span key={v}>{v===0?"0":`${v}'`}</span>)}
+              <div style={{display:"flex",alignItems:"center",gap:10,marginTop:8}}>
+                <input type="number" min="0" max="1440" step="1"
+                  aria-label="Retard en minutes"
+                  placeholder="ex : 47"
+                  value={sliderDelay||""}
+                  onChange={e=>{
+                    const v=Math.max(0,Math.min(1440,parseInt(e.target.value)||0));
+                    setSliderDelay(v);setHeureTheo("");setHeureReel("");
+                  }}
+                  style={{
+                    width:100,padding:"6px 10px",borderRadius:8,fontSize:16,fontWeight:700,
+                    border:`1.5px solid ${timeDelay!==null?P.border:P.red}`,
+                    background:P.surface,color:timeDelay!==null?P.textMuted:P.text,
+                    fontFamily:"'Inter','DM Sans',sans-serif",textAlign:"center",
+                    opacity:timeDelay!==null?0.5:1,
+                  }}
+                />
+                <span style={{fontSize:13,color:P.textMid,fontWeight:600}}>minutes</span>
+                {sliderDelay>0&&timeDelay===null&&(
+                  <span style={{fontSize:13,fontWeight:700,color:P.red}}>{fmtMin(sliderDelay)}</span>
+                )}
               </div>
             </details>
 
             {timeDelay!==null&&(
               <div style={{fontSize:11,color:P.textMuted,marginBottom:12,fontStyle:"italic"}}>
-                🕐 Retard calculé depuis {heureTheo} → {heureReel}. Utilisez la barre pour saisir manuellement.
+                🕐 Retard calculé depuis {heureTheo} → {heureReel}. Dépliez "Saisir le retard manuellement" pour ajuster.
               </div>
             )}
 
@@ -2570,6 +2579,7 @@ function App(){
                                 <optgroup label="🚌 Acheminement">{FRAIS_TYPES.filter(t=>["transport","taxi_nuit","taxi_optimum"].includes(t.id)).map(t=><option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}</optgroup>
                                 <optgroup label="🏨 Hébergement — Tous tarifs">{FRAIS_TYPES.filter(t=>["hotel_province","hotel_grande"].includes(t.id)).map(t=><option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}</optgroup>
                                 <optgroup label="⭐ Hébergement — Optimum+">{FRAIS_TYPES.filter(t=>["hotel_province_optimum","hotel_grande_optimum"].includes(t.id)).map(t=><option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}</optgroup>
+                                <optgroup label="🎟️ Rachat / Échange">{FRAIS_TYPES.filter(t=>["rachat_billets"].includes(t.id)).map(t=><option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}</optgroup>
                               </select>
                               <div style={{fontSize:11,color:isTaxiSpecial?P.blue:P.textMuted,marginTop:3,fontStyle:"italic",fontWeight:isTaxiSpecial?600:400}}>{def.note}</div>
                             </div>
@@ -2585,7 +2595,7 @@ function App(){
                                 :<input type="number" min="1" aria-label={unitLabel} value={f.qty} onChange={e=>updateFrais(f.id,"qty",e.target.value)} style={{...inp,fontWeight:700,textAlign:"center",fontVariantNumeric:"tabular-nums lining-nums",fontFamily:"'Inter','DM Sans',sans-serif",fontSize:15}}/>
                               }
                               <div style={{fontSize:11,color:isTaxiSpecial?P.blue:P.red,marginTop:3,fontWeight:600,textAlign:"center"}}>
-                                {isTaxiSpecial?"Forfait/course":`Plafond : ${def.max*qty} €`}
+                                {isTaxiSpecial?"Forfait/course":def.max!=null?`Plafond : ${def.max*qty} €`:"Sur justificatif"}
                               </div>
                             </div>
                             <div style={{flex:1}}>
@@ -2596,7 +2606,7 @@ function App(){
                                 style={{...inp,fontVariantNumeric:"tabular-nums lining-nums",fontFamily:"'Inter','DM Sans',sans-serif",fontWeight:600,fontSize:15}}
                               />
                               <div style={{fontSize:11,color:P.textMuted,marginTop:3}}>
-                                Plafond barème : <strong>{def.max} €/{def.unit}</strong>
+                                {def.max!=null?<span>Plafond barème : <strong>{def.max} €/{def.unit}</strong></span>:<span style={{color:"#C06010",fontWeight:600}}>Pas de plafond — sur justificatif</span>}
                               </div>
                             </div>
                           </div>
@@ -2624,7 +2634,7 @@ function App(){
                               <div>
                                 <div style={{fontWeight:600,fontSize:12.5}}>{r.def.label}</div>
                                 <div style={{fontSize:11.5,color:P.textMid,marginTop:2}}>
-                                  {r.qty} {r.def.unit}(s) × {r.def.max}€ = plafond {r.plafond}€
+                                  {r.def.max!=null?`${r.qty} ${r.def.unit}(s) × ${r.def.max}€ = plafond ${r.plafond}€`:`${r.qty} ${r.def.unit}(s) — sur justificatif`}
                                 </div>
                               </div>
                               <div style={{textAlign:"right",fontSize:11.5,color:P.textMid,fontVariantNumeric:"tabular-nums"}}>
