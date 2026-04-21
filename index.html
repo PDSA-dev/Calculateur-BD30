@@ -1104,9 +1104,11 @@ function App(){
   const changeCarrier=(segId,carrierId)=>setSegments(s=>s.map(x=>{
     if(x.id!==segId)return x;
     const avail=getTarifsForCarrier(carrierId).map(t=>t.id);
+    // OUIGO : tarif toujours Standard, sélection automatique
+    const newTarif=carrierId==="ouigo"?"standard":avail.includes(x.tarif)?x.tarif:"";
     return{...x,carrier:carrierId,
-      tarif:avail.includes(x.tarif)?x.tarif:"",
-      passengers:(x.passengers||[]).map(p=>({...p,tarif:avail.includes(p.tarif)?p.tarif:""})),
+      tarif:newTarif,
+      passengers:(x.passengers||[]).map(p=>({...p,tarif:carrierId==="ouigo"?"standard":avail.includes(p.tarif)?p.tarif:""})),
     };
   }));
   const toggleMultiPass=(segId)=>setSegments(s=>s.map(x=>{
@@ -1192,6 +1194,7 @@ function App(){
     const missingTarif=segments.some(seg=>{
       const c=CARRIERS.find(c=>c.id===seg.carrier);
       if(!c||c.group!=="eligible")return false;
+      if(seg.carrier==="ouigo")return false; // Standard automatique
       if(seg.multiPassMode)return(seg.passengers||[]).some(p=>!p.tarif);
       return!seg.tarif;
     });
@@ -1706,33 +1709,47 @@ function App(){
                         )}
                       </div>
 
-                      {/* Tarif pills */}
-                      <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:8}}>
-                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-                          <span style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.04em",color:seg.tarif?P.textMuted:P.red}}>Tarif</span>
-                          {!seg.tarif&&(<span style={{fontSize:10,fontWeight:700,color:"white",background:P.red,borderRadius:4,padding:"1px 6px"}}>⚠ Obligatoire</span>)}
+                      {/* Tarif pills — masqués pour OUIGO (Standard automatique) */}
+                      {seg.carrier==="ouigo"?(
+                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                          <span style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.04em",color:P.textMuted}}>Tarif</span>
+                          <span style={{
+                            display:"inline-flex",alignItems:"center",gap:5,
+                            padding:"4px 12px",borderRadius:20,fontSize:12,fontWeight:700,
+                            background:"rgba(232,0,93,.1)",color:"#E8005D",
+                            border:"1.5px solid rgba(232,0,93,.3)",
+                          }}>
+                            Standard <span style={{fontSize:10,fontWeight:600,opacity:.7}}>— automatique</span>
+                          </span>
                         </div>
-                        <div style={{display:"flex",gap:6,flexWrap:"wrap",padding:seg.tarif?"0":"6px 8px",borderRadius:seg.tarif?0:8,border:seg.tarif?"none":`1.5px dashed ${P.red}`,background:seg.tarif?"transparent":darkMode?P.redLight:"#FFF0F5"}}>
-                          {availTarifs.map(t=>(
-                            <label key={t.id} className={`tarif-pill${seg.tarif===t.id?" active":""}`}
-                              style={{
-                                borderColor:seg.tarif===t.id?t.color+"70":(!seg.tarif?P.redMid:P.border),
-                                background:seg.tarif===t.id?`${t.color}10`:"white",
-                                color:seg.tarif===t.id?t.color:P.textMid,
-                              }}>
-                              <input type="radio" name={`tarif-${seg.id}`} value={t.id}
-                                checked={seg.tarif===t.id}
-                                onChange={()=>{updateSegment(seg.id,"tarif",t.id);if(seg.multiPassMode)updateSegment(seg.id,"multiPassMode",false);}}
-                                style={{display:"none"}}
-                              />
-                              {t.label}
-                            </label>
-                          ))}
+                      ):(
+                        <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:8}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                            <span style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.04em",color:seg.tarif?P.textMuted:P.red}}>Tarif</span>
+                            {!seg.tarif&&(<span style={{fontSize:10,fontWeight:700,color:"white",background:P.red,borderRadius:4,padding:"1px 6px"}}>⚠ Obligatoire</span>)}
+                          </div>
+                          <div style={{display:"flex",gap:6,flexWrap:"wrap",padding:seg.tarif?"0":"6px 8px",borderRadius:seg.tarif?0:8,border:seg.tarif?"none":`1.5px dashed ${P.red}`,background:seg.tarif?"transparent":darkMode?P.redLight:"#FFF0F5"}}>
+                            {availTarifs.map(t=>(
+                              <label key={t.id} className={`tarif-pill${seg.tarif===t.id?" active":""}`}
+                                style={{
+                                  borderColor:seg.tarif===t.id?t.color+"70":(!seg.tarif?P.redMid:P.border),
+                                  background:seg.tarif===t.id?`${t.color}10`:"white",
+                                  color:seg.tarif===t.id?t.color:P.textMid,
+                                }}>
+                                <input type="radio" name={`tarif-${seg.id}`} value={t.id}
+                                  checked={seg.tarif===t.id}
+                                  onChange={()=>{updateSegment(seg.id,"tarif",t.id);if(seg.multiPassMode)updateSegment(seg.id,"multiPassMode",false);}}
+                                  style={{display:"none"}}
+                                />
+                                {t.label}
+                              </label>
+                            ))}
+                          </div>
+                          {!seg.tarif&&(<div style={{fontSize:11,color:P.red,fontStyle:"italic",marginTop:1}}>Sélectionnez un tarif pour calculer l'indemnisation.</div>)}
                         </div>
-                        {!seg.tarif&&(<div style={{fontSize:11,color:P.red,fontStyle:"italic",marginTop:1}}>Sélectionnez un tarif pour calculer l'indemnisation.</div>)}
-                      </div>
+                      )}
 
-                      {tarifInfo&&<div style={{fontSize:11.5,color:P.textMuted,lineHeight:1.5,marginBottom:10}}>{tarifInfo.desc}</div>}
+                      {tarifInfo&&seg.carrier!=="ouigo"&&<div style={{fontSize:11.5,color:P.textMuted,lineHeight:1.5,marginBottom:10}}>{tarifInfo.desc}</div>}
 
                       {/* ── RT 6373 : retard réel OUIGO (BD30 uniquement) ── */}
                       {!isG30&&seg.carrier==="ouigo"&&seg.tarif&&(()=>{
