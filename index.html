@@ -1075,7 +1075,7 @@ function App(){
     if(saved&&Array.isArray(saved)&&saved.length>0)return saved;
     return[emptySegment()];
   });
-  const isG30=segments.length===1&&G30_CARRIER_IDS.includes(segments[0]?.carrier);
+  const isG30=segments.length===1&&(!segments[0]?.carrier||G30_CARRIER_IDS.includes(segments[0].carrier));
 
   const[heureTheo,setHeureTheo]=useState(()=>lsLoad("heureTheo",""));
   const[heureReel,setHeureReel]=useState(()=>lsLoad("heureReel",""));
