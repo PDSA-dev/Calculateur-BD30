@@ -122,7 +122,7 @@ const RATES_STANDARD = {
   intercites_eco:[[30,59,0,null],[60,119,25,"BAD/Virement"],[120,179,50,"BAD/Virement"],[180,239,75,"BAD/Virement"],[240,Infinity,75,"BAD/Virement"]],
   ouigo:         [[30,59,0,null],[60,119,25,"BAD recréditable"],[120,179,50,"BAD recréditable"],[180,239,50,"BAD recréditable"],[240,Infinity,100,"BAD recréditable"]],
   ter:           [[30,59,0,null],[60,119,25,"BAD/Virement"],[120,179,50,"BAD/Virement"],[180,239,50,"BAD/Virement"],[240,Infinity,50,"BAD/Virement"]],
-  ter_krono:     [[30,59,25,"BAD/Virement"],[60,119,25,"BAD/Virement"],[120,179,50,"BAD/Virement"],[180,239,75,"BAD/Virement"],[240,Infinity,75,"BAD/Virement"]],
+  ter_krono:     [[30,59,25,"BAD uniquement"],[60,119,25,"BAD/Virement"],[120,179,50,"BAD/Virement"],[180,239,75,"BAD/Virement"],[240,Infinity,75,"BAD/Virement"]],
 };
 const RATES_MAX_LOISIRS = {
   default: [[30,179,5,"BAD — 5€"],[180,239,10,"BAD — 10€"],[240,Infinity,20,"BAD — 20€"]],
@@ -1075,7 +1075,7 @@ function App(){
     if(saved&&Array.isArray(saved)&&saved.length>0)return saved;
     return[emptySegment()];
   });
-  const isG30=segments.length===1;
+  const isG30=segments.length===1&&G30_CARRIER_IDS.includes(segments[0]?.carrier);
 
   const[heureTheo,setHeureTheo]=useState(()=>lsLoad("heureTheo",""));
   const[heureReel,setHeureReel]=useState(()=>lsLoad("heureReel",""));
@@ -1583,7 +1583,7 @@ function App(){
             boxShadow:"0 1px 3px rgba(0,0,0,.04)",
           }}>
             {isG30
-              ?<><strong style={{color:P.red}}>ℹ️ Mode G30 — Trajet sec</strong> — 1 seul segment. Transporteurs éligibles : <strong>TGV INOUI domestique</strong>, <strong>TGV international (filiale)</strong> et <strong>Intercités</strong>. Ajoutez un segment pour basculer en <strong style={{color:P.blue}}>BD30</strong>.</>
+              ?<><strong style={{color:P.red}}>ℹ️ Mode G30 — Trajet sec</strong> — 1 seul segment. Transporteurs éligibles : <strong>TGV INOUI domestique</strong>, <strong>TGV international (filiale)</strong>, <strong>Intercités</strong> et <strong>Intercités 100% Éco</strong> (≥ 60 min). Ajoutez un segment pour basculer en <strong style={{color:P.blue}}>BD30</strong>.</>
               :<><strong style={{color:P.blue}}>ℹ️ Mode BD30 — Billet Direct</strong> — voyages ≥ 2 segments en une seule transaction. Les billets <span style={{color:P.green,fontWeight:700}}>Abonnés Max et Forfaits</span> (0€) suivent un barème G30 spécifique en montants fixes. Supprimez des segments pour repasser en <strong style={{color:P.red}}>G30</strong>.
               <span style={{
                 display:"block",marginTop:7,paddingTop:7,
