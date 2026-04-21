@@ -992,7 +992,7 @@ function LogoApp({size=72}){
 
 function App(){
   // ── Helpers localStorage ──────────────────────────────────────────
-  const LS_KEY="bd30_state_v31";
+  const LS_KEY="bd30_state_v30";
   const lsLoad=(k,def)=>{try{const v=JSON.parse(localStorage.getItem(LS_KEY)||"{}");return v[k]!==undefined?v[k]:def;}catch{return def;}};
   const lsSave=(partial)=>{try{const cur=JSON.parse(localStorage.getItem(LS_KEY)||"{}");localStorage.setItem(LS_KEY,JSON.stringify({...cur,...partial}));}catch{}};
 
@@ -1053,24 +1053,22 @@ function App(){
 
   // ── Historique des 5 derniers calculs ─────────────────────────────
   const[history,setHistory]=useState(()=>{
-    try{return JSON.parse(localStorage.getItem("bd30_history_v31")||"[]");}catch{return[];}
+    try{return JSON.parse(localStorage.getItem("bd30_history_v30")||"[]");}catch{return[];}
   });
   const[showHistory,setShowHistory]=useState(false);
   const pushHistory=(entry)=>{
     setHistory(prev=>{
       const next=[entry,...prev].slice(0,5);
-      try{localStorage.setItem("bd30_history_v31",JSON.stringify(next));}catch{}
+      try{localStorage.setItem("bd30_history_v30",JSON.stringify(next));}catch{}
       return next;
     });
   };
 
-  // ── Segments OUIGO traités en proactif (BD30 uniquement) ──────────
-  const[ouigoProactifSegs,setOuigoProactifSegs]=useState(new Set());
-  const toggleOuigoProactif=(segId)=>setOuigoProactifSegs(prev=>{
-    const next=new Set(prev);
-    next.has(segId)?next.delete(segId):next.add(segId);
-    return next;
-  });
+  // ── Retards réels OUIGO par segment (BD30 — RT 6373) ─────────────
+  // Clé = segmentId, valeur = retard réel OUIGO en minutes (string)
+  const[ouigoRealDelays,setOuigoRealDelays]=useState({});
+  const setOuigoDelay=(segId,val)=>setOuigoRealDelays(prev=>({...prev,[segId]:val}));
+  const clearOuigoDelay=(segId)=>setOuigoRealDelays(prev=>{const n={...prev};delete n[segId];return n;});
 
   const[segments,setSegments]=useState(()=>{
     const saved=lsLoad("segments",null);
@@ -1137,10 +1135,14 @@ function App(){
     const results=segments.map(seg=>{
       const c=CARRIERS.find(c=>c.id===seg.carrier);
       const isEligible=c&&c.group==="eligible";
-      const isProactif=!isG30&&seg.carrier==="ouigo"&&ouigoProactifSegs.has(seg.id);
       let rateInfo={rate:0,fixedAmount:null,type:null};
       let amount=0;
       let passengersResult=[];
+      // ── OUIGO RT 6373 : calcul du complément ──────────────────
+      const ouigoRealDelayMin=!isG30&&seg.carrier==="ouigo"&&ouigoRealDelays[seg.id]!==undefined
+        ?parseInt(ouigoRealDelays[seg.id])||0:null;
+      let ouigoAlreadyPaid=null,ouigoBD30Due=null,ouigoRefus=false;
+
       if(isEligible){
         if(seg.multiPassMode&&seg.passengers&&seg.passengers.length>0){
           passengersResult=seg.passengers.map(p=>{
@@ -1156,15 +1158,25 @@ function App(){
           const n=seg.tarif==="groupe"?1:(seg.nbPass||1);
           amount=baseAmt*n;
         }
-      }else{rateInfo.type="Non éligible BD30";}
-      return{...seg,carrier:c,price:parseFloat(seg.price)||0,rateInfo,amount,eligible:isEligible,passengersResult,proactif:isProactif};
+        // Applique RT 6373 si retard réel OUIGO renseigné
+        if(ouigoRealDelayMin!==null){
+          ouigoBD30Due=amount;
+          const riAlready=getRateInfo("ouigo",seg.tarif,ouigoRealDelayMin);
+          const n=seg.tarif==="groupe"?1:(seg.nbPass||1);
+          ouigoAlreadyPaid=computeSegmentAmount(seg.price,seg.tarif,riAlready)*n;
+          const complement=Math.max(0,ouigoBD30Due-ouigoAlreadyPaid);
+          ouigoRefus=ouigoAlreadyPaid>=ouigoBD30Due&&ouigoBD30Due>0;
+          amount=complement;
+        }
+      }else{rateInfo.type="Non eligible BD30";}
+      return{...seg,carrier:c,price:parseFloat(seg.price)||0,rateInfo,amount,eligible:isEligible,passengersResult,
+        ouigoRealDelayMin,ouigoAlreadyPaid,ouigoBD30Due,ouigoRefus};
     });
-    // Total exclut les segments OUIGO traités en proactif
-    let baseTotal=results.filter(r=>!r.proactif).reduce((a,r)=>a+r.amount,0);
+    let baseTotal=results.reduce((a,r)=>a+r.amount,0);
     const excLvl=EXCEPT_LEVELS.find(e=>e.id===exceptLevel);
     let exceptBonus=0,exceptOnSegId=null;
     if(excLvl&&excLvl.multiplier!==null&&exceptSegmentId){
-      const target=results.find(r=>r.id===exceptSegmentId&&r.eligible&&!r.proactif);
+      const target=results.find(r=>r.id===exceptSegmentId&&r.eligible);
       if(target){
         exceptOnSegId=target.id;
         const _n=target.tarif==="groupe"?1:(target.nbPass||1);
@@ -1176,17 +1188,16 @@ function App(){
       }
     }
     const total=baseTotal+exceptBonus;
-    const hasPrimePoints=results.filter(r=>!r.proactif).some(r=>r.eligible&&(r.rateInfo?.points>0||(r.passengersResult||[]).some(p=>p.rateInfo?.points>0)));
+    const hasPrimePoints=results.some(r=>r.eligible&&(r.rateInfo?.points>0||(r.passengersResult||[]).some(p=>p.rateInfo?.points>0)));
     const missingTarif=segments.some(seg=>{
       const c=CARRIERS.find(c=>c.id===seg.carrier);
       if(!c||c.group!=="eligible")return false;
       if(seg.multiPassMode)return(seg.passengers||[]).some(p=>!p.tarif);
       return!seg.tarif;
     });
-    const ouigoProactifTotal=results.filter(r=>r.proactif).reduce((a,r)=>a+r.amount,0);
-    const newComputed={results,baseTotal,total,exceptBonus,finalDelay,eligible:total>=4||hasPrimePoints,hasNonEligible:results.some(r=>!r.eligible),excLvl,exceptOnSegId,missingTarif,ouigoProactifTotal};
+    const newComputed={results,baseTotal,total,exceptBonus,finalDelay,eligible:total>=4||hasPrimePoints,hasNonEligible:results.some(r=>!r.eligible),excLvl,exceptOnSegId,missingTarif};
     setComputed(newComputed);
-  },[segments,finalDelay,exceptLevel,exceptSegmentId,ouigoProactifSegs]);
+  },[segments,finalDelay,exceptLevel,exceptSegmentId,ouigoRealDelays]);
 
   const addFrais   =()=>setFraisList(f=>[...f,emptyFrais()]);
   const removeFrais=id=>setFraisList(f=>f.filter(x=>x.id!==id));
@@ -1253,7 +1264,7 @@ function App(){
     if(!resetConfirm){setResetConfirm(true);setTimeout(()=>setResetConfirm(false),2500);return;}
     setSegments([emptySegment()]);setHeureTheo("");setHeureReel("");setSliderDelay(0);
     setRupture(false);setComputed(null);setExceptLevel("none");setExceptSegmentId(null);
-    setFraisList([]);setFraisComputed(null);setOuigoProactifSegs(new Set());
+    setFraisList([]);setFraisComputed(null);setOuigoRealDelays({});
     setDateAchat("");setDateActivation("");
     setDateDemande(new Date().toISOString().split("T")[0]);
     setAboTypeId("max_actif");setAboMensualiteCustom("");setAboMensualiteVariable("");setContratPro(false);setJourOuvrableMode(false);setRetractType("abo");setDatesSection(null);
@@ -1294,91 +1305,70 @@ function App(){
 
   const copyResult=(type)=>{
     // Helper : label de tarif (couvre Standard, Max, Prime, Groupe)
-    const getTarifLabel=(id)=>[...TARIFS,{id:"groupe",label:"Tarif Groupe"}].find(t=>t.id===id)?.label||id||"—";
-    // Ligne par segment — gère même tarif, nbPass, multiPassMode et groupe
+    const getTarifLabel=(id)=>[...TARIFS,{id:"groupe",label:"Tarif Groupe"}].find(t=>t.id===id)?.label||id||"-";
+    // Ligne par segment — gere meme tarif, nbPass, multiPassMode et groupe
     const segLine=(r)=>{
-      const carrier=r.carrier?r.carrier.label:"—";
+      const carrier=r.carrier?r.carrier.label:"-";
       if(r.multiPassMode&&r.passengersResult&&r.passengersResult.length>0){
         const passLines=r.passengersResult.map((p,pi)=>{
           const tl=getTarifLabel(p.tarif);
           const ri=p.rateInfo;
-          const rateStr=ri?.rate>0?`${ri.rate}%`:ri?.fixedAmount!=null?`${ri.fixedAmount}€ BAD`:ri?.points!=null?`${ri.points} pts`:"—";
-          return`  Pass.${pi+1} · ${tl} · ${p.price>0?p.price.toFixed(2)+"€":"0€"} · ${rateStr} → ${p.amount.toFixed(2)}€`;
-        }).join("\n");
-        return`${carrier}\n${passLines}`;
+          const rateStr=ri?.rate>0?`${ri.rate}%`:ri?.fixedAmount!=null?`${ri.fixedAmount}EUR BAD`:ri?.points!=null?`${ri.points} pts`:"-";
+          return`  Pass.${pi+1} - ${tl} - ${p.price>0?p.price.toFixed(2)+"EUR":"0EUR"} - ${rateStr} -> ${p.amount.toFixed(2)}EUR`;
+        }).join(" | ");
+        return`${carrier} | ${passLines}`;
       }
       const tl=getTarifLabel(r.tarif);
       const n=r.nbPass||1;
       const isMax=["max_loisirs","prime_titulaire","prime_fid_tiers","prime_gvt_tiers"].includes(r.tarif);
-      const prixStr=r.tarif==="groupe"?`${r.price.toFixed(2)}€ groupe`:isMax?"0€":n>1?`${n}×${r.price.toFixed(2)}€`:`${r.price.toFixed(2)}€`;
+      const prixStr=r.tarif==="groupe"?`${r.price.toFixed(2)}EUR groupe`:isMax?"0EUR":n>1?`${n}x${r.price.toFixed(2)}EUR`:`${r.price.toFixed(2)}EUR`;
       const ri=r.rateInfo;
-      const rateStr=ri?.rate>0?`${ri.rate}%`:ri?.fixedAmount!=null?`${ri.fixedAmount}€ BAD`:ri?.points!=null?`${ri.points} pts`:"—";
-      return`${carrier} · ${tl} · ${prixStr} · ${rateStr} → ${r.amount.toFixed(2)}€`;
+      const rateStr=ri?.rate>0?`${ri.rate}%`:ri?.fixedAmount!=null?`${ri.fixedAmount}EUR BAD`:ri?.points!=null?`${ri.points} pts`:"-";
+      // RT 6373 complement
+      if(r.ouigoRealDelayMin!==null&&r.ouigoBD30Due!==null){
+        if(r.ouigoRefus){
+          return`${carrier} - ${tl} - ${prixStr} - BD30 du ${r.ouigoBD30Due.toFixed(2)}EUR - OUIGO deja verse ${r.ouigoAlreadyPaid.toFixed(2)}EUR (${r.ouigoRealDelayMin}min) - REFUS complement RT 6373`;
+        }
+        return`${carrier} - ${tl} - ${prixStr} - BD30 du ${r.ouigoBD30Due.toFixed(2)}EUR - OUIGO deja verse ${r.ouigoAlreadyPaid.toFixed(2)}EUR (${r.ouigoRealDelayMin}min) - Complement RCAD ${r.amount.toFixed(2)}EUR (RT 6373)`;
+      }
+      return`${carrier} - ${tl} - ${prixStr} - ${rateStr} -> ${r.amount.toFixed(2)}EUR`;
     };
     let text="";
     if(type==="retard"&&computed){
       const mode=isG30?"G30":"BD30";
-      const parts=[`${mode} · ${delayLabel(computed.finalDelay)}`];
-      computed.results.forEach(r=>{
-        if(r.eligible){
-          if(r.proactif){
-            const ri=r.rateInfo;
-            const rateStr=ri?.rate>0?`${ri.rate}%`:ri?.fixedAmount!=null?`${ri.fixedAmount}€ BAD`:ri?.points!=null?`${ri.points} pts`:"—";
-            const carrier=r.carrier?r.carrier.label:"OUIGO";
-            const n=r.nbPass||1;
-            const prixStr=n>1?`${n}×${r.price.toFixed(2)}€`:`${r.price.toFixed(2)}€`;
-            parts.push(`${carrier} · Standard · ${prixStr} · ${rateStr} → ${r.amount.toFixed(2)}€ [OUIGO traité en proactif — exclu du total RCAD — vérifier RT 6373]`);
-          }else{
-            parts.push(segLine(r));
-          }
-        }
-      });
-      if(computed.exceptBonus>0) parts.push(`Bonus exception (${computed.excLvl?.label||""}) : +${computed.exceptBonus.toFixed(2)}€`);
-      if(computed.ouigoProactifTotal>0) parts.push(`OUIGO proactif : ${computed.ouigoProactifTotal.toFixed(2)}€ non inclus — à comparer avec compensation déjà versée (RT 6373)`);
-      if(!isG30||computed.results.length>1) parts.push(`Total RCAD : ${computed.total.toFixed(2)}€`);
-      else parts[0]+=` · ${computed.total.toFixed(2)}€`;
+      const parts=[`${mode} - ${delayLabel(computed.finalDelay)}`];
+      computed.results.forEach(r=>{if(r.eligible)parts.push(segLine(r));});
+      if(computed.exceptBonus>0) parts.push(`Bonus exception (${computed.excLvl?.label||""}) : +${computed.exceptBonus.toFixed(2)}EUR`);
+      if(!isG30||computed.results.length>1) parts.push(`Total : ${computed.total.toFixed(2)}EUR`);
+      else parts[0]+=` - ${computed.total.toFixed(2)}EUR`;
       text=parts.join(" | ");
     }else if(type==="frais"&&fraisComputed){
       const parts=fraisComputed.results.map(r=>{
-        const plafond=r.def?.max!=null?` (plaf. ${r.plafond.toFixed(2)}€)`:"";
-        return`${r.def?.label||r.type} · ${r.qty}×${r.montant.toFixed(2)}€${plafond} → ${r.rembourse.toFixed(2)}€`;
+        const plafond=r.def?.max!=null?` (plaf. ${r.plafond.toFixed(2)}EUR)`:"";
+        return`${r.def?.label||r.type} - ${r.qty}x${r.montant.toFixed(2)}EUR${plafond} -> ${r.rembourse.toFixed(2)}EUR`;
       });
-      parts.push(`Total frais : ${fraisComputed.total.toFixed(2)}€`);
+      parts.push(`Total frais : ${fraisComputed.total.toFixed(2)}EUR`);
       text=parts.join(" | ");
     }else if(type==="combined"){
       const parts=[];
       if(computed&&computed.eligible){
         const mode=isG30?"G30":"BD30";
-        parts.push(`${mode} · ${delayLabel(computed.finalDelay)}`);
-        computed.results.forEach(r=>{
-          if(r.eligible){
-            if(r.proactif){
-              const ri=r.rateInfo;
-              const rateStr=ri?.rate>0?`${ri.rate}%`:ri?.fixedAmount!=null?`${ri.fixedAmount}€ BAD`:ri?.points!=null?`${ri.points} pts`:"—";
-              const carrier=r.carrier?r.carrier.label:"OUIGO";
-              const n=r.nbPass||1;
-              const prixStr=n>1?`${n}×${r.price.toFixed(2)}€`:`${r.price.toFixed(2)}€`;
-              parts.push(`${carrier} · Standard · ${prixStr} · ${rateStr} → ${r.amount.toFixed(2)}€ [OUIGO proactif — exclu total RCAD — RT 6373]`);
-            }else{
-              parts.push(segLine(r));
-            }
-          }
-        });
-        if(computed.exceptBonus>0) parts.push(`Bonus exception (${computed.excLvl?.label||""}) : +${computed.exceptBonus.toFixed(2)}€`);
-        if(computed.ouigoProactifTotal>0) parts.push(`OUIGO proactif : ${computed.ouigoProactifTotal.toFixed(2)}€ non inclus`);
-        parts.push(`Total G30/BD30 : ${computed.total.toFixed(2)}€`);
+        parts.push(`${mode} - ${delayLabel(computed.finalDelay)}`);
+        computed.results.forEach(r=>{if(r.eligible)parts.push(segLine(r));});
+        if(computed.exceptBonus>0) parts.push(`Bonus exception (${computed.excLvl?.label||""}) : +${computed.exceptBonus.toFixed(2)}EUR`);
+        parts.push(`Total G30/BD30 : ${computed.total.toFixed(2)}EUR`);
       }
       if(fraisComputed&&fraisComputed.total>0){
         if(parts.length>0) parts.push("---");
         fraisComputed.results.forEach(r=>{
-          const plafond=r.def?.max!=null?` (plaf. ${r.plafond.toFixed(2)}€)`:"";
-          parts.push(`${r.def?.label||r.type} · ${r.qty}×${r.montant.toFixed(2)}€${plafond} → ${r.rembourse.toFixed(2)}€`);
+          const plafond=r.def?.max!=null?` (plaf. ${r.plafond.toFixed(2)}EUR)`:"";
+          parts.push(`${r.def?.label||r.type} - ${r.qty}x${r.montant.toFixed(2)}EUR${plafond} -> ${r.rembourse.toFixed(2)}EUR`);
         });
-        parts.push(`Total frais : ${fraisComputed.total.toFixed(2)}€`);
+        parts.push(`Total frais : ${fraisComputed.total.toFixed(2)}EUR`);
       }
       const grandTotal=((computed&&computed.eligible?computed.total:0)+(fraisComputed&&fraisComputed.total>0?fraisComputed.total:0));
       if(computed&&fraisComputed&&computed.eligible&&fraisComputed.total>0)
-        parts.push(`Total général : ${grandTotal.toFixed(2)}€`);
+        parts.push(`Total general : ${grandTotal.toFixed(2)}EUR`);
       text=parts.join(" | ");
     }
     if(!text)return;
@@ -1743,32 +1733,59 @@ function App(){
 
                       {tarifInfo&&<div style={{fontSize:11.5,color:P.textMuted,lineHeight:1.5,marginBottom:10}}>{tarifInfo.desc}</div>}
 
-                      {/* ── OUIGO proactif (BD30 uniquement) ── */}
+                      {/* ── RT 6373 : retard réel OUIGO (BD30 uniquement) ── */}
                       {!isG30&&seg.carrier==="ouigo"&&seg.tarif&&(()=>{
-                        const isProactif=ouigoProactifSegs.has(seg.id);
+                        const val=ouigoRealDelays[seg.id]!==undefined?ouigoRealDelays[seg.id]:"";
+                        const hasVal=val!==""&&parseInt(val)>0;
+                        const ouigoDelay=parseInt(val)||0;
+                        const riPro=hasVal?getRateInfo("ouigo",seg.tarif,ouigoDelay):null;
+                        const n=seg.tarif==="groupe"?1:(seg.nbPass||1);
+                        const proAmt=riPro?computeSegmentAmount(seg.price,seg.tarif,riPro)*n:0;
                         return(
                           <div style={{
-                            marginBottom:12,padding:"9px 13px",borderRadius:10,
-                            background:isProactif?"#FFF0A8":"rgba(232,0,93,.05)",
-                            border:`1.5px ${isProactif?"solid":"dashed"} ${isProactif?"#E8C000":"rgba(232,0,93,.25)"}`,
+                            marginBottom:12,padding:"10px 13px",borderRadius:10,
+                            background:hasVal?"rgba(110,30,120,.06)":"rgba(232,0,93,.04)",
+                            border:`1.5px ${hasVal?"solid":"dashed"} ${hasVal?"#9A78CC":"rgba(232,0,93,.2)"}`,
                           }}>
-                            <label style={{display:"flex",alignItems:"flex-start",gap:9,cursor:"pointer",fontSize:12.5}}>
-                              <input type="checkbox" checked={isProactif}
-                                onChange={()=>toggleOuigoProactif(seg.id)}
-                                style={{width:15,height:15,marginTop:1,accentColor:"#E05206",flexShrink:0}}
-                              />
-                              <span>
-                                <strong style={{color:isProactif?"#7A5000":"#E8005D"}}>
-                                  🟣 OUIGO responsable du retard — traité en proactif
-                                </strong>
-                                <span style={{display:"block",fontSize:11,color:"#6E5000",marginTop:2,lineHeight:1.5}}>
-                                  {isProactif
-                                    ?"✓ L'indemnisation OUIGO est affichée mais exclue du total RCAD. Vérifier RT 6373 si cumul."
-                                    :"Cocher si OUIGO est le responsable et a déjà compensé en proactif. Le montant OUIGO sera affiché mais non comptabilisé dans le total RCAD."
-                                  }
+                            <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",color:hasVal?"#6E1E78":"#9A6090",marginBottom:7}}>
+                              RT 6373 — Retard réel OUIGO (trajet sec)
+                            </div>
+                            <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                <input type="number" min="0" max="600" step="1"
+                                  placeholder="ex: 60"
+                                  value={val}
+                                  onChange={e=>setOuigoDelay(seg.id,e.target.value)}
+                                  style={{
+                                    width:90,padding:"7px 10px",borderRadius:8,
+                                    border:`1.5px solid ${hasVal?"#9A78CC":P.border}`,
+                                    fontSize:15,fontWeight:700,textAlign:"center",
+                                    background:P.surface,color:P.text,
+                                    fontFamily:"'Inter','DM Sans',sans-serif",outline:"none",
+                                  }}
+                                />
+                                <span style={{fontSize:13,color:P.textMid,fontWeight:600}}>min</span>
+                                {hasVal&&(
+                                  <button onClick={()=>clearOuigoDelay(seg.id)} style={{
+                                    background:"none",border:"none",cursor:"pointer",
+                                    color:P.textMuted,fontSize:16,padding:"0 4px",lineHeight:1,
+                                  }} title="Effacer">×</button>
+                                )}
+                              </div>
+                              {hasVal&&(
+                                <div style={{fontSize:11.5,color:"#6E1E78",lineHeight:1.5}}>
+                                  Proactif OUIGO ({ouigoDelay} min) : <strong>{proAmt.toFixed(2)} € deja verse</strong>
+                                  <span style={{display:"block",color:P.textMuted,fontSize:11}}>
+                                    Le complement sera calcule dans les resultats.
+                                  </span>
+                                </div>
+                              )}
+                              {!hasVal&&(
+                                <span style={{fontSize:11,color:P.textMuted,lineHeight:1.5,flex:1}}>
+                                  Saisir si OUIGO a deja indemnise en proactif (trajet sec). Le calculateur determinera le complement RCAD.
                                 </span>
-                              </span>
-                            </label>
+                              )}
+                            </div>
                           </div>
                         );
                       })()}
@@ -2350,119 +2367,98 @@ function App(){
                   const isExceptSeg=computed.exceptOnSegId===r.id;
                   const exceptBonus=isExceptSeg?computed.exceptBonus:0;
                   const totalAmt=r.amount+exceptBonus;
-                  const isProactif=r.proactif;
+                  const hasComplement=r.ouigoRealDelayMin!==null&&r.ouigoBD30Due!==null;
                   return(
-                    <div key={r.id} className="result-row" style={{
-                      background:isProactif?"rgba(232,192,0,.08)":isExceptSeg?P.amberLight:"transparent",
-                      borderRadius:(isProactif||isExceptSeg)?8:0,
-                      opacity:isProactif?.85:1,
-                    }}>
-                      <div style={{
-                        width:28,height:28,borderRadius:"50%",
-                        background:r.eligible?(r.carrier?r.carrier.color:P.red):"#DDD",
-                        color:"white",display:"flex",alignItems:"center",justifyContent:"center",
-                        fontWeight:800,fontSize:12,flexShrink:0,
-                        border:isProactif?"2.5px dashed #E8C000":"none",
-                      }}>{idx+1}</div>
-                      <div>
-                        <div style={{fontWeight:600,fontSize:12.5,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                          {r.carrier?r.carrier.label:r.carrier}
-                          <TarifPill tarif={r.tarif}/>
-                          {isExceptSeg&&<span style={{fontSize:11,background:"#FFF0A0",color:P.amber,padding:"1px 7px",borderRadius:10,fontWeight:700,border:`1px solid ${P.amberMid}`}}>⭐ Except.</span>}
-                          {isProactif&&<span style={{fontSize:10,background:"#FFF0C0",color:"#7A5000",padding:"1px 7px",borderRadius:10,fontWeight:700,border:"1px solid #E8C000"}}>🟣 Proactif OUIGO</span>}
-                        </div>
-                        <div style={{fontSize:11,color:P.textMid,marginTop:3,display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
-                          {r.eligible
-                            ?(r.tarif==="max_loisirs"?"Abonnés Max / Forfait — 0€":r.tarif==="prime_titulaire"?"Billet Prime — Titulaire":r.tarif==="prime_fid_tiers"?"Billet Prime — FID + Tiers":r.tarif==="prime_gvt_tiers"?"Billet Prime — GVT + Tiers":r.tarif==="carte_liberte_billet"?"Carte Liberté — plancher 5 € min":(()=>{
-                              if(r.multiPassMode&&r.passengersResult?.length>0){
-                                const tot=r.passengersResult.reduce((s,p)=>s+p.price,0);
-                                return`${tot.toFixed(2)} € (${r.passengersResult.length} pass.)`;
+                    <div key={r.id}>
+                      <div className="result-row" style={{
+                        background:hasComplement?(r.ouigoRefus?"rgba(161,0,107,.06)":"rgba(110,30,120,.06)"):isExceptSeg?P.amberLight:"transparent",
+                        borderRadius:(hasComplement||isExceptSeg)?8:0,
+                      }}>
+                        <div style={{width:28,height:28,borderRadius:"50%",background:r.eligible?(r.carrier?r.carrier.color:P.red):"#DDD",color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:12,flexShrink:0}}>{idx+1}</div>
+                        <div>
+                          <div style={{fontWeight:600,fontSize:12.5,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                            {r.carrier?r.carrier.label:r.carrier}
+                            <TarifPill tarif={r.tarif}/>
+                            {isExceptSeg&&<span style={{fontSize:11,background:"#FFF0A0",color:P.amber,padding:"1px 7px",borderRadius:10,fontWeight:700,border:`1px solid ${P.amberMid}`}}>Except.</span>}
+                            {hasComplement&&<span style={{fontSize:10,background:r.ouigoRefus?"#F5D0D8":"#EDE0FF",color:r.ouigoRefus?P.red:"#6E1E78",padding:"1px 7px",borderRadius:10,fontWeight:700,border:`1px solid ${r.ouigoRefus?P.redMid:"#C0A0E8"}`}}>RT 6373</span>}
+                          </div>
+                          <div style={{fontSize:11,color:P.textMid,marginTop:3,display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+                            {r.eligible
+                              ?(r.tarif==="max_loisirs"?"Abonnes Max / Forfait - 0 EUR":r.tarif==="prime_titulaire"?"Billet Prime - Titulaire":r.tarif==="prime_fid_tiers"?"Billet Prime - FID + Tiers":r.tarif==="prime_gvt_tiers"?"Billet Prime - GVT + Tiers":r.tarif==="carte_liberte_billet"?"Carte Liberte - plancher 5 EUR min":(()=>{
+                                if(r.multiPassMode&&r.passengersResult?.length>0){
+                                  const tot=r.passengersResult.reduce((s,p)=>s+p.price,0);
+                                  return`${tot.toFixed(2)} EUR (${r.passengersResult.length} pass.)`;
+                                }
+                                const n=r.nbPass||1;
+                                return n>1?`${r.price.toFixed(2)} EUR x ${n}`:`${r.price.toFixed(2)} EUR`;
+                              })())
+                              :<em>Hors perimetre BD30</em>
+                            }
+                            {ri&&ri.type&&r.eligible&&(
+                              <Badge color={r.tarif==="prime_titulaire"?P.blue:r.tarif==="prime_fid_tiers"?P.purple:r.tarif==="prime_gvt_tiers"?P.purple:ri.rate>0||ri.fixedAmount?P.red:P.textMuted}>
+                                {ri.type}
+                              </Badge>
+                            )}
+                          </div>
+                          {/* Détail complément OUIGO */}
+                          {hasComplement&&(
+                            <div style={{marginTop:5,fontSize:11,color:"#6E1E78",lineHeight:1.6,padding:"5px 8px",background:"rgba(110,30,120,.05)",borderRadius:6,border:"1px solid rgba(110,30,120,.15)"}}>
+                              BD30 du : <strong>{r.ouigoBD30Due.toFixed(2)} EUR</strong>
+                              {" - "}deja verse OUIGO ({r.ouigoRealDelayMin} min) : <strong>{r.ouigoAlreadyPaid.toFixed(2)} EUR</strong>
+                              {r.ouigoRefus
+                                ?<span style={{display:"block",color:P.red,fontWeight:700,marginTop:2}}>Refus - OUIGO a deja verse >= BD30 due</span>
+                                :<span style={{display:"block",color:"#0F6B3C",fontWeight:700,marginTop:2}}>= Complement RCAD : {totalAmt.toFixed(2)} EUR</span>
                               }
-                              const n=r.nbPass||1;
-                              return n>1?`${r.price.toFixed(2)} € × ${n}`:`${r.price.toFixed(2)} €`;
-                            })())
-                            :<em>Hors périmètre BD30</em>
-                          }
-                          {ri&&ri.type&&r.eligible&&(
-                            <Badge color={r.tarif==="prime_titulaire"?P.blue:r.tarif==="prime_fid_tiers"?P.purple:r.tarif==="prime_gvt_tiers"?P.purple:ri.rate>0||ri.fixedAmount?P.red:P.textMuted}>
-                              {ri.type}
-                            </Badge>
+                            </div>
                           )}
                         </div>
-                      </div>
-                      {/* Taux / points */}
-                      <div style={{textAlign:"center"}}>
-                        {r.eligible&&ri?(
-                          ri.dual==="fid_tiers"
-                            ?<div style={{display:"flex",flexDirection:"column",gap:3}}>
-                              <div style={{background:"#DDE6FF",color:P.blue,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.points} pts</div>
-                              <div style={{background:P.purpleLight,color:P.purple,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.fixedAmount} € BAD</div>
-                            </div>
-                            :ri.dual==="gvt_tiers"
-                            ?<div style={{display:"flex",flexDirection:"column",gap:3}}>
-                              <div style={{background:P.purpleLight,color:P.purple,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.fixedAmount} € BAD</div>
-                              <div style={{background:P.purpleLight,color:P.purple,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.fixedAmount} € BAD</div>
-                            </div>
-                            :ri.points!==null
-                            ?<div style={{background:P.blueLight,color:P.blue,fontWeight:800,fontSize:13,padding:"4px 8px",borderRadius:6,textAlign:"center",lineHeight:1.2,fontVariantNumeric:"tabular-nums"}}>{ri.points}<br/><span style={{fontSize:11,fontWeight:600}}>pts</span></div>
-                            :ri.fixedAmount!==null
-                            ?<AmountPill color={P.green}>{ri.fixedAmount} €</AmountPill>
-                            :<div style={{background:ri.rate>0?P.redLight:P.surface2,color:ri.rate>0?P.red:P.textMuted,fontWeight:800,fontSize:16,padding:"4px 8px",borderRadius:6,fontVariantNumeric:"tabular-nums"}}>{ri.rate}%</div>
-                        ):<div style={{color:P.textMuted,fontSize:14}}>—</div>}
-                      </div>
-                      {/* Montant */}
-                      <div style={{fontSize:13,fontWeight:700,textAlign:"right"}}>
-                        {r.eligible?(
-                          isProactif
-                            ?<div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
-                              <span style={{fontSize:12,color:"#9A7000",fontWeight:800,fontVariantNumeric:"tabular-nums",textDecoration:"line-through",opacity:.6}}>{totalAmt.toFixed(2)} €</span>
-                              <span style={{fontSize:10,color:"#7A5000",fontWeight:700,lineHeight:1.2}}>exclu du total</span>
-                            </div>
-                          :r.tarif==="prime_titulaire"
-                            ?<span style={{fontSize:11,color:P.blue,fontWeight:600}}>Voir pts →</span>
-                            :r.tarif==="prime_fid_tiers"
-                            ?<div style={{display:"flex",flexDirection:"column",gap:2,alignItems:"flex-end"}}>
-                              <span style={{fontSize:11,color:P.blue,fontWeight:700}}>FID : pts ✓</span>
-                              <span style={{fontSize:12,color:P.purple,fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{ri&&ri.fixedAmount?ri.fixedAmount:0} € tiers</span>
-                            </div>
-                            :r.tarif==="prime_gvt_tiers"
-                            ?<div style={{display:"flex",flexDirection:"column",gap:2,alignItems:"flex-end"}}>
-                              <span style={{fontSize:11,color:P.purple,fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{ri&&ri.fixedAmount?ri.fixedAmount:0} € GVT</span>
-                              <span style={{fontSize:11,color:P.purple,fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{ri&&ri.fixedAmount?ri.fixedAmount:0} € tiers</span>
-                            </div>
-                            :<span style={{fontVariantNumeric:"tabular-nums lining-nums",fontFamily:"'Inter','DM Sans',sans-serif",fontWeight:700,fontSize:15}}>{totalAmt.toFixed(2)} €</span>
-                        ):"—"}
+                        {/* Taux / points */}
+                        <div style={{textAlign:"center"}}>
+                          {r.eligible&&ri?(
+                            ri.dual==="fid_tiers"
+                              ?<div style={{display:"flex",flexDirection:"column",gap:3}}>
+                                <div style={{background:"#DDE6FF",color:P.blue,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.points} pts</div>
+                                <div style={{background:P.purpleLight,color:P.purple,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.fixedAmount} EUR BAD</div>
+                              </div>
+                              :ri.dual==="gvt_tiers"
+                              ?<div style={{display:"flex",flexDirection:"column",gap:3}}>
+                                <div style={{background:P.purpleLight,color:P.purple,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.fixedAmount} EUR BAD</div>
+                                <div style={{background:P.purpleLight,color:P.purple,fontWeight:800,fontSize:11,padding:"3px 6px",borderRadius:5,textAlign:"center"}}>{ri.fixedAmount} EUR BAD</div>
+                              </div>
+                              :ri.points!==null
+                              ?<div style={{background:P.blueLight,color:P.blue,fontWeight:800,fontSize:13,padding:"4px 8px",borderRadius:6,textAlign:"center",lineHeight:1.2,fontVariantNumeric:"tabular-nums"}}>{ri.points}<br/><span style={{fontSize:11,fontWeight:600}}>pts</span></div>
+                              :ri.fixedAmount!==null
+                              ?<AmountPill color={P.green}>{ri.fixedAmount} EUR</AmountPill>
+                              :<div style={{background:ri.rate>0?P.redLight:P.surface2,color:ri.rate>0?P.red:P.textMuted,fontWeight:800,fontSize:16,padding:"4px 8px",borderRadius:6,fontVariantNumeric:"tabular-nums"}}>{ri.rate}%</div>
+                          ):<div style={{color:P.textMuted,fontSize:14}}>-</div>}
+                        </div>
+                        {/* Montant */}
+                        <div style={{fontSize:13,fontWeight:700,textAlign:"right"}}>
+                          {r.eligible?(
+                            r.ouigoRefus
+                              ?<span style={{fontSize:11,color:P.red,fontWeight:700}}>Refus</span>
+                              :r.tarif==="prime_titulaire"
+                              ?<span style={{fontSize:11,color:P.blue,fontWeight:600}}>Voir pts</span>
+                              :r.tarif==="prime_fid_tiers"
+                              ?<div style={{display:"flex",flexDirection:"column",gap:2,alignItems:"flex-end"}}>
+                                <span style={{fontSize:11,color:P.blue,fontWeight:700}}>FID : pts</span>
+                                <span style={{fontSize:12,color:P.purple,fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{ri&&ri.fixedAmount?ri.fixedAmount:0} EUR tiers</span>
+                              </div>
+                              :r.tarif==="prime_gvt_tiers"
+                              ?<div style={{display:"flex",flexDirection:"column",gap:2,alignItems:"flex-end"}}>
+                                <span style={{fontSize:11,color:P.purple,fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{ri&&ri.fixedAmount?ri.fixedAmount:0} EUR GVT</span>
+                                <span style={{fontSize:11,color:P.purple,fontWeight:800,fontVariantNumeric:"tabular-nums"}}>{ri&&ri.fixedAmount?ri.fixedAmount:0} EUR tiers</span>
+                              </div>
+                              :<span style={{fontVariantNumeric:"tabular-nums lining-nums",fontFamily:"'Inter','DM Sans',sans-serif",fontWeight:700,fontSize:15,color:hasComplement?"#6E1E78":P.text}}>{totalAmt.toFixed(2)} EUR</span>
+                          ):"-"}
+                        </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* Alerte OUIGO proactif — RT 6373 */}
-              {!isG30&&computed.ouigoProactifTotal>0&&(
-                <div style={{margin:"0 12px 12px",borderRadius:10,overflow:"hidden",border:"1.5px solid #E8C000"}}>
-                  <div style={{background:"linear-gradient(135deg,#7A5000,#B07800)",padding:"9px 14px",color:"white",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:8}}>
-                    <span style={{fontSize:16}}>🟣</span>
-                    OUIGO responsable — indemnisation proactive
-                    <span style={{marginLeft:"auto",fontSize:10,opacity:.8,fontWeight:400}}>RT 6373</span>
-                  </div>
-                  <div style={{padding:"12px 14px",background:"#FFFBEA",fontSize:11.5,lineHeight:1.75,color:"#5A3E00"}}>
-                    <div style={{marginBottom:8}}>
-                      OUIGO a traité le retard en proactif (BAD recréditable). Montant proactif estimé : <strong style={{color:"#7A5000"}}>{computed.ouigoProactifTotal.toFixed(2)} €</strong> — <strong>exclu du total RCAD.</strong>
-                    </div>
-                    <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                      <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
-                        <span style={{flexShrink:0,background:"#B00020",color:"white",borderRadius:20,padding:"1px 8px",fontSize:10,fontWeight:700,marginTop:2}}>REFUS</span>
-                        <span>Compensation OUIGO déjà versée <strong>≥ G30 due</strong> sur le billet direct → refus total, ne pas re-compenser.</span>
-                      </div>
-                      <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
-                        <span style={{flexShrink:0,background:"#0F6B3C",color:"white",borderRadius:20,padding:"1px 8px",fontSize:10,fontWeight:700,marginTop:2}}>COMPLÉMENT</span>
-                        <span>Compensation OUIGO versée <strong>{"<"} G30 due</strong> → verser uniquement la différence en BAD (RT 6373).</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* Alerte retard transporteur non éligible en BD30 */}
               {!isG30&&computed.hasNonEligible&&(
                 <div style={{
                   margin:"0 12px 12px",borderRadius:10,overflow:"hidden",
@@ -4332,7 +4328,7 @@ function App(){
         color:P.textMuted,borderTop:`1px solid ${P.border}`,
         background:P.surface,letterSpacing:.2,
       }}>
-        Calculateur BD30 / G30 · <strong style={{color:P.red}}>version 3.1</strong> · by PDSA · Règlement PRR 2021 · En vigueur au 02/03/2026 · À titre indicatif uniquement
+        Calculateur BD30 / G30 · <strong style={{color:P.red}}>version 3.0</strong> · by PDSA · Règlement PRR 2021 · En vigueur au 02/03/2026 · À titre indicatif uniquement
       </footer>
 
     </div>
