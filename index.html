@@ -1243,6 +1243,7 @@ function App(){
   const[spVoyage,setSpVoyage]=useState(""); // "suppression","retard60"
   const[spRenoncement,setSpRenoncement]=useState(""); // "oui","non"
   const[openFraisCards,setOpenFraisCards]=useState(new Set(["sp","frais"]));
+  const[openOuigoCard,setOpenOuigoCard]=useState(false);
 
   // ── Persistance localStorage ──────────────────────────────────────
   useEffect(()=>{
@@ -1329,7 +1330,7 @@ function App(){
         if(r.ouigoRefus){
           return`${carrier} - ${tl} - ${prixStr} - BD30 du ${r.ouigoBD30Due.toFixed(2)}EUR - OUIGO deja verse ${r.ouigoAlreadyPaid.toFixed(2)}EUR (${r.ouigoRealDelayMin}min) - REFUS complement RT 6373`;
         }
-        return`${carrier} - ${tl} - ${prixStr} - BD30 du ${r.ouigoBD30Due.toFixed(2)}EUR - OUIGO deja verse ${r.ouigoAlreadyPaid.toFixed(2)}EUR (${r.ouigoRealDelayMin}min) - Complement RCAD ${r.amount.toFixed(2)}EUR (RT 6373)`;
+        return`${carrier} - ${tl} - ${prixStr} - BD30 du ${r.ouigoBD30Due.toFixed(2)}EUR - OUIGO deja verse ${r.ouigoAlreadyPaid.toFixed(2)}EUR (${r.ouigoRealDelayMin}min) - Complement TGV Care ${r.amount.toFixed(2)}EUR (RT 6373)`;
       }
       return`${carrier} - ${tl} - ${prixStr} - ${rateStr} -> ${r.amount.toFixed(2)}EUR`;
     };
@@ -1782,7 +1783,7 @@ function App(){
                               )}
                               {!hasVal&&(
                                 <span style={{fontSize:11,color:P.textMuted,lineHeight:1.5,flex:1}}>
-                                  Saisir si OUIGO a deja indemnise en proactif (trajet sec). Le calculateur determinera le complement RCAD.
+                                  Saisir si OUIGO a deja indemnise en proactif (trajet sec). Le calculateur determinera le complement TGV Care.
                                 </span>
                               )}
                             </div>
@@ -2157,92 +2158,109 @@ function App(){
             const hasOuigo=segments.some(s=>s.carrier==="ouigo");
             const hasTer=segments.some(s=>["ter","ter_krono"].includes(s.carrier));
             if(!hasOuigo)return null;
-            // TER + OUIGO — hors périmètre RCAD
+            // TER + OUIGO — hors périmètre TGV Care
             if(hasTer&&!hasTgvIc) return(
               <div className="card card-anim" style={{border:`2px solid ${P.orange}`,background:P.orangeLight,animationDelay:".05s"}}>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
                   <span style={{fontSize:20}}>⚠️</span>
-                  <h2 className="section-title" style={{margin:0,color:P.orange}}>TER + OUIGO — Hors périmètre RCAD</h2>
+                  <h2 className="section-title" style={{margin:0,color:P.orange}}>TER + OUIGO — Hors périmètre TGV Care</h2>
                   <span style={{fontSize:11,background:"#FFD5C0",color:P.orange,padding:"2px 8px",borderRadius:10,fontWeight:700,border:"1px solid #E0A080"}}>FILE DÉDIÉE</span>
                 </div>
                 <div style={{fontSize:12,lineHeight:1.75,color:"#7A3000",padding:"10px 14px",background:"#FFE0C0",borderRadius:8,border:"1px solid #E0A080"}}>
-                  La combinaison <strong>TER + OUIGO</strong> ne relève pas du dispositif RCAD automatique.<br/>
+                  La combinaison <strong>TER + OUIGO</strong> ne relève pas du dispositif TGV Care automatique.<br/>
                   <strong style={{color:P.orange}}>➜ Rediriger vers la file : « Demandes BD30 manuelles TER-OUIGO »</strong>
                 </div>
               </div>
             );
-            // TGV/IC + OUIGO — carte complète
+            // TGV/IC + OUIGO — carte accordéon
             if(hasTgvIc) return(
-              <div className="card card-anim" style={{border:`2px solid ${P.blue}`,background:P.blueLight,padding:0,overflow:"hidden",animationDelay:".05s"}}>
-                {/* Header */}
-                <div style={{background:`linear-gradient(135deg,#005E9E,${P.blue})`,padding:"12px 18px",display:"flex",alignItems:"center",gap:10}}>
-                  <span style={{fontSize:18}}>🚄➕🟣</span>
-                  <div>
+              <div className="card-anim" style={{borderRadius:14,overflow:"hidden",border:`2px solid ${P.blue}`,animationDelay:".05s"}}>
+                {/* ── Header cliquable ── */}
+                <button
+                  onClick={()=>setOpenOuigoCard(o=>!o)}
+                  style={{
+                    width:"100%",background:`linear-gradient(135deg,#005E9E,${P.blue})`,
+                    padding:"13px 18px",display:"flex",alignItems:"center",gap:10,
+                    border:"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit",
+                  }}
+                >
+                  <span style={{fontSize:18,flexShrink:0}}>🚄➕🟣</span>
+                  <div style={{flex:1,minWidth:0}}>
                     <div style={{color:"white",fontWeight:800,fontSize:13}}>Billet Direct TGV / Intercités + OUIGO</div>
-                    <div style={{color:"rgba(255,255,255,.7)",fontSize:11,marginTop:1}}>Règle en vigueur depuis le 7 juin 2023 — retard à l'arrivée finale uniquement</div>
+                    <div style={{color:"rgba(255,255,255,.65)",fontSize:11,marginTop:1}}>Règle en vigueur depuis le 7 juin 2023 — retard à l'arrivée finale uniquement</div>
                   </div>
-                  <span style={{marginLeft:"auto",fontSize:10,fontWeight:700,padding:"2px 9px",borderRadius:10,background:"rgba(255,255,255,.2)",color:"white",border:"1px solid rgba(255,255,255,.35)"}}>RT 5828</span>
-                </div>
-                <div style={{padding:"14px 18px"}}>
-                  {/* Règle commune */}
-                  <div style={{fontSize:11.5,color:P.blue,lineHeight:1.7,padding:"8px 12px",background:"rgba(0,136,206,.08)",borderRadius:8,border:"1px solid rgba(0,136,206,.2)",marginBottom:14}}>
-                    📌 <strong>Principe :</strong> Le retard pris en compte est celui constaté à <strong>l'arrivée finale</strong> du voyageur, quel que soit le segment perturbé. Le RCAD prend en charge l'ensemble du billet direct.
-                  </div>
-                  {/* Config 1 */}
-                  <div style={{marginBottom:12,borderRadius:10,overflow:"hidden",border:`1.5px solid ${P.blue}`}}>
-                    <div style={{background:P.blue,padding:"9px 14px",color:"white",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:8}}>
-                      <span>🟦</span> Config 1 — TGV retardé → OUIGO manqué
-                      <span style={{marginLeft:"auto",fontSize:10,opacity:.8,fontWeight:400}}>RT 5828</span>
+                  <span style={{fontSize:10,fontWeight:700,padding:"2px 9px",borderRadius:10,background:"rgba(255,255,255,.2)",color:"white",border:"1px solid rgba(255,255,255,.35)",flexShrink:0}}>RT 5828</span>
+                  <span style={{
+                    marginLeft:8,color:"rgba(255,255,255,.85)",fontSize:18,flexShrink:0,
+                    display:"inline-flex",alignItems:"center",
+                    transition:"transform .22s cubic-bezier(.22,.68,0,1.2)",
+                    transform:openOuigoCard?"rotate(180deg)":"rotate(0deg)",
+                  }}>▾</span>
+                </button>
+
+                {/* ── Corps déroulable ── */}
+                {openOuigoCard&&(
+                  <div className="acc-body" style={{padding:"14px 18px",background:P.blueLight}}>
+                    {/* Règle commune */}
+                    <div style={{fontSize:11.5,color:P.blue,lineHeight:1.7,padding:"8px 12px",background:"rgba(0,136,206,.08)",borderRadius:8,border:"1px solid rgba(0,136,206,.2)",marginBottom:14}}>
+                      📌 <strong>Principe :</strong> Le retard pris en compte est celui constaté à <strong>l'arrivée finale</strong> du voyageur, quel que soit le segment perturbé. TGV Care prend en charge l'ensemble du billet direct.
                     </div>
-                    <div style={{padding:"12px 14px",background:"white",fontSize:11.5,lineHeight:1.8,color:P.textMid}}>
-                      <div style={{marginBottom:8}}><strong style={{color:P.text}}>Traitement :</strong> RCAD compense <strong>l'intégralité du billet direct</strong> (TGV + OUIGO). Le retard retenu est celui du <strong>train de report</strong> à l'arrivée finale.</div>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                        <div style={{padding:"8px 10px",borderRadius:8,background:P.blueLight,border:`1px solid ${P.blueMid}`}}>
-                          <div style={{fontWeight:700,fontSize:11,color:P.blue,marginBottom:4}}>Retard &lt; 60 min</div>
-                          <div style={{fontSize:11,color:P.textMid}}>BAD uniquement</div>
-                        </div>
-                        <div style={{padding:"8px 10px",borderRadius:8,background:P.blueLight,border:`1px solid ${P.blueMid}`}}>
-                          <div style={{fontWeight:700,fontSize:11,color:P.blue,marginBottom:4}}>Retard ≥ 60 min</div>
-                          <div style={{fontSize:11,color:P.textMid}}>BAD ou virement</div>
-                        </div>
+                    {/* Config 1 */}
+                    <div style={{marginBottom:12,borderRadius:10,overflow:"hidden",border:`1.5px solid ${P.blue}`}}>
+                      <div style={{background:P.blue,padding:"9px 14px",color:"white",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:8}}>
+                        <span>🟦</span> Config 1 — TGV retardé → OUIGO manqué
+                        <span style={{marginLeft:"auto",fontSize:10,opacity:.8,fontWeight:400}}>RT 5828</span>
                       </div>
-                      <div style={{fontSize:11,padding:"7px 10px",borderRadius:7,background:"#FFF8E0",border:"1px solid #F5D060",color:"#7A5000"}}>
-                        💬 <strong>Si OUIGO aussi retardé :</strong> informer le client que la compensation OUIGO sera gérée en proactif par OUIGO. Ne pas cumuler les deux indemnisations.
-                      </div>
-                    </div>
-                  </div>
-                  {/* Config 2 */}
-                  <div style={{marginBottom:12,borderRadius:10,overflow:"hidden",border:"1.5px solid #009AA6"}}>
-                    <div style={{background:"#009AA6",padding:"9px 14px",color:"white",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:8}}>
-                      <span>🟩</span> Config 2 — TGV à l'heure, retard OUIGO seul
-                    </div>
-                    <div style={{padding:"12px 14px",background:"white",fontSize:11.5,lineHeight:1.8,color:P.textMid}}>
-                      <div style={{marginBottom:8}}><strong style={{color:P.text}}>Traitement :</strong> RCAD intervient sur le segment <strong>TGV / Intercités uniquement</strong>. OUIGO gère son propre retard en proactif.</div>
-                      <div style={{fontSize:11,padding:"7px 10px",borderRadius:7,background:"#E6F7F8",border:"1px solid #80D0D8",color:"#005C62"}}>
-                        ✅ G30 calculée sur le segment TGV/IC. Aucune action RCAD sur le segment OUIGO retardé.
-                      </div>
-                    </div>
-                  </div>
-                  {/* RT 6373 */}
-                  <div style={{borderRadius:10,overflow:"hidden",border:"1.5px solid #6E1E78"}}>
-                    <div style={{background:"#6E1E78",padding:"9px 14px",color:"white",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:8}}>
-                      <span>⚖️</span> Règle anti-cumul — RT 6373
-                    </div>
-                    <div style={{padding:"12px 14px",background:P.purpleLight,fontSize:11.5,lineHeight:1.8,color:P.textMid}}>
-                      <div style={{marginBottom:6}}><strong style={{color:"#6E1E78"}}>Si une compensation OUIGO a déjà été versée :</strong></div>
-                      <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                        <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
-                          <span style={{flexShrink:0,background:"#B00020",color:"white",borderRadius:20,padding:"1px 8px",fontSize:10,fontWeight:700,marginTop:2}}>REFUS</span>
-                          <span>Compensation OUIGO déjà versée <strong>≥ G30 due</strong> sur le billet direct → refus total, ne pas re-compenser.</span>
+                      <div style={{padding:"12px 14px",background:"white",fontSize:11.5,lineHeight:1.8,color:P.textMid}}>
+                        <div style={{marginBottom:8}}><strong style={{color:P.text}}>Traitement :</strong> TGV Care compense <strong>l'intégralité du billet direct</strong> (TGV + OUIGO). Le retard retenu est celui du <strong>train de report</strong> à l'arrivée finale.</div>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                          <div style={{padding:"8px 10px",borderRadius:8,background:P.blueLight,border:`1px solid ${P.blueMid}`}}>
+                            <div style={{fontWeight:700,fontSize:11,color:P.blue,marginBottom:4}}>Retard &lt; 60 min</div>
+                            <div style={{fontSize:11,color:P.textMid}}>BAD uniquement</div>
+                          </div>
+                          <div style={{padding:"8px 10px",borderRadius:8,background:P.blueLight,border:`1px solid ${P.blueMid}`}}>
+                            <div style={{fontWeight:700,fontSize:11,color:P.blue,marginBottom:4}}>Retard ≥ 60 min</div>
+                            <div style={{fontSize:11,color:P.textMid}}>BAD ou virement</div>
+                          </div>
                         </div>
-                        <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
-                          <span style={{flexShrink:0,background:P.green,color:"white",borderRadius:20,padding:"1px 8px",fontSize:10,fontWeight:700,marginTop:2}}>COMPLÉMENT</span>
-                          <span>Compensation OUIGO versée <strong>&lt; G30 due</strong> → verser uniquement la différence en BAD.</span>
+                        <div style={{fontSize:11,padding:"7px 10px",borderRadius:7,background:"#FFF8E0",border:"1px solid #F5D060",color:"#7A5000"}}>
+                          💬 <strong>Si OUIGO aussi retardé :</strong> informer le client que la compensation OUIGO sera gérée en proactif par OUIGO. Ne pas cumuler les deux indemnisations.
                         </div>
                       </div>
                     </div>
+                    {/* Config 2 */}
+                    <div style={{marginBottom:12,borderRadius:10,overflow:"hidden",border:"1.5px solid #009AA6"}}>
+                      <div style={{background:"#009AA6",padding:"9px 14px",color:"white",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:8}}>
+                        <span>🟩</span> Config 2 — TGV à l'heure, retard OUIGO seul
+                      </div>
+                      <div style={{padding:"12px 14px",background:"white",fontSize:11.5,lineHeight:1.8,color:P.textMid}}>
+                        <div style={{marginBottom:8}}><strong style={{color:P.text}}>Traitement :</strong> TGV Care intervient sur le segment <strong>TGV / Intercités uniquement</strong>. OUIGO gère son propre retard en proactif.</div>
+                        <div style={{fontSize:11,padding:"7px 10px",borderRadius:7,background:"#E6F7F8",border:"1px solid #80D0D8",color:"#005C62"}}>
+                          ✅ G30 calculée sur le segment TGV/IC. Aucune action TGV Care sur le segment OUIGO retardé.
+                        </div>
+                      </div>
+                    </div>
+                    {/* RT 6373 */}
+                    <div style={{borderRadius:10,overflow:"hidden",border:"1.5px solid #6E1E78"}}>
+                      <div style={{background:"#6E1E78",padding:"9px 14px",color:"white",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:8}}>
+                        <span>⚖️</span> Règle anti-cumul — RT 6373
+                      </div>
+                      <div style={{padding:"12px 14px",background:P.purpleLight,fontSize:11.5,lineHeight:1.8,color:P.textMid}}>
+                        <div style={{marginBottom:6}}><strong style={{color:"#6E1E78"}}>Si une compensation OUIGO a déjà été versée :</strong></div>
+                        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                          <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                            <span style={{flexShrink:0,background:"#B00020",color:"white",borderRadius:20,padding:"1px 8px",fontSize:10,fontWeight:700,marginTop:2}}>REFUS</span>
+                            <span>Compensation OUIGO déjà versée <strong>≥ G30 due</strong> sur le billet direct → refus total, ne pas re-compenser.</span>
+                          </div>
+                          <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                            <span style={{flexShrink:0,background:P.green,color:"white",borderRadius:20,padding:"1px 8px",fontSize:10,fontWeight:700,marginTop:2}}>COMPLÉMENT</span>
+                            <span>Compensation OUIGO versée <strong>&lt; G30 due</strong> → TGV Care verse uniquement la différence en BAD.</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             );
             return null;
@@ -2407,7 +2425,7 @@ function App(){
                               {" - "}deja verse OUIGO ({r.ouigoRealDelayMin} min) : <strong>{r.ouigoAlreadyPaid.toFixed(2)} EUR</strong>
                               {r.ouigoRefus
                                 ?<span style={{display:"block",color:P.red,fontWeight:700,marginTop:2}}>Refus - OUIGO a deja verse >= BD30 due</span>
-                                :<span style={{display:"block",color:"#0F6B3C",fontWeight:700,marginTop:2}}>= Complement RCAD : {totalAmt.toFixed(2)} EUR</span>
+                                :<span style={{display:"block",color:"#0F6B3C",fontWeight:700,marginTop:2}}>= Complement TGV Care : {totalAmt.toFixed(2)} EUR</span>
                               }
                             </div>
                           )}
@@ -2951,8 +2969,8 @@ function App(){
                         </thead>
                         <tbody>
                           {[
-                            ["Segment TGV / Intercités","G30 standard — compensation RCAD"],
-                            ["Segment OUIGO retardé","Proactif OUIGO — hors RCAD"],
+                            ["Segment TGV / Intercités","G30 standard — compensation TGV Care"],
+                            ["Segment OUIGO retardé","Proactif OUIGO — hors TGV Care"],
                           ].map(([perimetre,action],i)=>(
                             <tr key={i} style={{background:i%2===0?"white":"#F0FAFA",borderBottom:`1px solid ${P.border}`}}>
                               <td style={{padding:"9px 12px",color:P.text}}>{perimetre}</td>
@@ -2984,7 +3002,7 @@ function App(){
 
                     {/* TER + OUIGO */}
                     <div style={{borderRadius:8,padding:"10px 12px",background:"#FFF4E0",border:"1.5px solid #E8C060",fontSize:11.5,lineHeight:1.7,color:"#7A4000"}}>
-                      <strong style={{color:P.orange}}>⚠️ TER + OUIGO :</strong> Hors périmètre RCAD — rediriger vers la file <strong>« Demandes BD30 manuelles TER-OUIGO »</strong>.
+                      <strong style={{color:P.orange}}>⚠️ TER + OUIGO :</strong> Hors perimetre TGV Care — rediriger vers la file <strong>« Demandes BD30 manuelles TER-OUIGO »</strong>.
                     </div>
                   </div>
                 )}
@@ -4328,7 +4346,7 @@ function App(){
         color:P.textMuted,borderTop:`1px solid ${P.border}`,
         background:P.surface,letterSpacing:.2,
       }}>
-        Calculateur BD30 / G30 · <strong style={{color:P.red}}>version 3.0</strong> · by PDSA · Règlement PRR 2021 · En vigueur au 02/03/2026 · À titre indicatif uniquement
+        Calculateur BD30 / G30 · <strong style={{color:P.red}}>version 3.1</strong> · by PDSA · Règlement PRR 2021 · En vigueur au 02/03/2026 · À titre indicatif uniquement
       </footer>
 
     </div>
