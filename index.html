@@ -719,11 +719,15 @@ function labelJourFerie(date){
 function computeRetractation(dateAchat){
   if(!dateAchat)return null;
   const achat=new Date(dateAchat);achat.setHours(0,0,0,0);
-  const deadline=addDays(achat,14);
+  const limiteCalendaire=addDays(achat,14);
   const today=new Date();today.setHours(0,0,0,0);
-  const joursRestants=diffDays(today,deadline);
-  const estDansDelai=today<=deadline;
-  return{achat,deadline,joursRestants,estDansDelai};
+  const limiteNonOuvrable=isJourNonOuvrable(limiteCalendaire);
+  const limiteReportee=limiteNonOuvrable?prochaineJourOuvrable(limiteCalendaire):limiteCalendaire;
+  const ferieLabel=isJourFerie(limiteCalendaire)?labelJourFerie(limiteCalendaire):null;
+  const joursRestants=diffDays(today,limiteReportee);
+  const estDansDelai=today<=limiteReportee;
+  // deadline kept for back-compat
+  return{achat,limiteCalendaire,limiteNonOuvrable,limiteReportee,ferieLabel,joursRestants,estDansDelai,deadline:limiteCalendaire};
 }
 function computeRetractationCarte(dateAchat){
   if(!dateAchat)return null;
@@ -775,13 +779,6 @@ function computeResiliation(dateActivation,dateDemande,mensualite,aboData){
   const enBlocage=!!finBlocage3mois&&demande<finBlocage3mois;
   const joursBlocageRestants=enBlocage?diffDays(demande,finBlocage3mois):0;
 
-  // Frais selon type d'abonnement
-  let frais=0,fraisLabel="";
-  if(enEngagementInitial){
-    if(aboData.fraisResil==="forfait15"){frais=15;fraisLabel="Résiliation avant la fin des 12 mois d'engagement → frais de dossier forfaitaires CGV SNCF";}
-    else if(aboData.fraisResil==="mensualite"){frais=mensualite||0;fraisLabel=mensualite?`Résiliation avant la fin des 12 mois initiaux → prélèvement d'une mensualité supplémentaire`:"Résiliation avant la fin des 12 mois initiaux → prélèvement d'une mensualité supplémentaire";}
-  }
-
   // Deadline et date d'effet
   const datePourCalcul=enBlocage?finBlocage3mois:demande;
   let deadline,effetDate;
@@ -816,6 +813,15 @@ function computeResiliation(dateActivation,dateDemande,mensualite,aboData){
     }else{
       effetDate=new Date(datePourCalcul.getFullYear(),datePourCalcul.getMonth()+2,1);
     }
+  }
+  effetDate.setHours(0,0,0,0);
+
+  // Frais : s'appliquent uniquement si la DATE D'EFFET est avant la fin des 12 mois d'engagement
+  // (une demande tardive dont l'effet tombe après la fin d'engagement est sans frais)
+  let frais=0,fraisLabel="";
+  if(effetDate<finEngagementInitial){
+    if(aboData.fraisResil==="forfait15"){frais=15;fraisLabel="Résiliation avant la fin des 12 mois d'engagement → frais de dossier forfaitaires CGV SNCF";}
+    else if(aboData.fraisResil==="mensualite"){frais=mensualite||0;fraisLabel=mensualite?`Résiliation avant la fin des 12 mois initiaux → prélèvement d'une mensualité supplémentaire`:"Résiliation avant la fin des 12 mois initiaux → prélèvement d'une mensualité supplémentaire";}
   }
   return{type:aboType,activation,activationSaisie,activationCorrigee,
     finEngagementInitial,demande,enEngagement:enEngagementInitial,
@@ -2371,7 +2377,33 @@ function App() {
                         </div>
                       </div>
                     </div>
-                    <div style={{marginTop:10,fontSize:11,color:"var(--tx-muted)",lineHeight:1.6}}>
+                    {expiredActive?(
+                      <div style={{marginTop:10,borderRadius:10,padding:"12px 14px",background:"rgba(161,0,107,.04)",border:"1.5px solid rgba(161,0,107,.22)"}}>
+                        <div style={{fontSize:10,fontWeight:800,color:"var(--prune)",textTransform:"uppercase",letterSpacing:.7,marginBottom:10}}>📋 Fenêtre de recevabilité</div>
+                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:9}}>
+                          <div style={{flex:1,textAlign:"center"}}>
+                            <div style={{fontSize:10,color:"var(--tx-muted)",fontWeight:600,marginBottom:4}}>Date d'achat</div>
+                            <div style={{fontSize:12,fontWeight:700,color:"var(--tx)",background:"var(--surface2)",padding:"5px 10px",borderRadius:8,border:"1px solid var(--border)"}}>{fmtDate(retractResult.achat)}</div>
+                          </div>
+                          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0}}>
+                            <div style={{width:28,height:1,background:"var(--border-mid)"}}/>
+                            <div style={{fontSize:9,color:"var(--tx-muted)",fontWeight:600,whiteSpace:"nowrap"}}>14 j cal.</div>
+                            <div style={{width:28,height:1,background:"var(--border-mid)"}}/>
+                          </div>
+                          <div style={{flex:1,textAlign:"center"}}>
+                            <div style={{fontSize:10,color:"var(--prune)",fontWeight:600,marginBottom:4}}>Date limite</div>
+                            <div style={{fontSize:12,fontWeight:800,color:"var(--prune)",background:"rgba(161,0,107,.07)",padding:"5px 10px",borderRadius:8,border:"1px solid rgba(161,0,107,.2)"}}>{fmtDate(limiteActive)}</div>
+                          </div>
+                        </div>
+                        <div style={{fontSize:11.5,color:"var(--tx-mid)",lineHeight:1.55}}>Toute demande formulée entre le <strong style={{color:"var(--tx)"}}>{fmtDate(retractResult.achat)}</strong> et le <strong style={{color:"var(--prune)"}}>{fmtDate(limiteActive)}</strong> est recevable.</div>
+                      </div>
+                    ):(
+                      <div style={{marginTop:10,borderRadius:10,padding:"10px 14px",display:"flex",alignItems:"center",gap:10,background:"rgba(10,92,56,.06)",border:"1.5px solid #60C898"}}>
+                        <span style={{fontSize:15,flexShrink:0}}>📅</span>
+                        <span style={{fontSize:12,lineHeight:1.5,color:"var(--tx)"}}>Toute demande formulée avant le <strong style={{color:"#0A5C38"}}>{fmtDate(limiteActive)}</strong> est recevable.</span>
+                      </div>
+                    )}
+                    <div style={{marginTop:8,fontSize:11,color:"var(--tx-muted)",lineHeight:1.6}}>
                       ℹ️ <strong>Comment exercer le droit ?</strong> Courrier recommandé AR ou formulaire de rétractation sur le site de vente. Remboursement sous 14 jours après notification.
                     </div>
                   </div>
@@ -2412,7 +2444,33 @@ function App() {
                         <div style={{color:"rgba(255,255,255,.65)",fontSize:11.5,marginTop:3}}>{expiredActive?`Délai expiré depuis ${Math.abs(remainingActive)} jour${Math.abs(remainingActive)>1?"s":""}. Rétractation impossible.`:`Date limite effective : ${fmtDate(cr.limiteReportee)}`}</div>
                       </div>
                     </div>
-                    <div style={{marginTop:10,fontSize:11,color:"var(--tx-muted)",lineHeight:1.6}}>
+                    {expiredActive?(
+                      <div style={{marginTop:10,borderRadius:10,padding:"12px 14px",background:"rgba(110,30,120,.04)",border:"1.5px solid rgba(110,30,120,.22)"}}>
+                        <div style={{fontSize:10,fontWeight:800,color:"var(--purple)",textTransform:"uppercase",letterSpacing:.7,marginBottom:10}}>📋 Fenêtre de recevabilité</div>
+                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:9}}>
+                          <div style={{flex:1,textAlign:"center"}}>
+                            <div style={{fontSize:10,color:"var(--tx-muted)",fontWeight:600,marginBottom:4}}>Date d'achat</div>
+                            <div style={{fontSize:12,fontWeight:700,color:"var(--tx)",background:"var(--surface2)",padding:"5px 10px",borderRadius:8,border:"1px solid var(--border)"}}>{fmtDate(cr.achat)}</div>
+                          </div>
+                          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0}}>
+                            <div style={{width:28,height:1,background:"var(--border-mid)"}}/>
+                            <div style={{fontSize:9,color:"var(--tx-muted)",fontWeight:600,whiteSpace:"nowrap"}}>J+14 ouvré</div>
+                            <div style={{width:28,height:1,background:"var(--border-mid)"}}/>
+                          </div>
+                          <div style={{flex:1,textAlign:"center"}}>
+                            <div style={{fontSize:10,color:"var(--purple)",fontWeight:600,marginBottom:4}}>Date limite</div>
+                            <div style={{fontSize:12,fontWeight:800,color:"var(--purple)",background:"rgba(110,30,120,.07)",padding:"5px 10px",borderRadius:8,border:"1px solid rgba(110,30,120,.2)"}}>{fmtDate(cr.limiteReportee)}</div>
+                          </div>
+                        </div>
+                        <div style={{fontSize:11.5,color:"var(--tx-mid)",lineHeight:1.55}}>Toute demande formulée entre le <strong style={{color:"var(--tx)"}}>{fmtDate(cr.achat)}</strong> et le <strong style={{color:"var(--purple)"}}>{fmtDate(cr.limiteReportee)}</strong> est recevable.</div>
+                      </div>
+                    ):(
+                      <div style={{marginTop:10,borderRadius:10,padding:"10px 14px",display:"flex",alignItems:"center",gap:10,background:"rgba(59,26,106,.06)",border:"1.5px solid #D8B4FF"}}>
+                        <span style={{fontSize:15,flexShrink:0}}>📅</span>
+                        <span style={{fontSize:12,lineHeight:1.5,color:"var(--tx)"}}>Toute demande formulée avant le <strong style={{color:"var(--purple)"}}>{fmtDate(cr.limiteReportee)}</strong> est recevable.</span>
+                      </div>
+                    )}
+                    <div style={{marginTop:8,fontSize:11,color:"var(--tx-muted)",lineHeight:1.6}}>
                       ℹ️ <strong>Règle cartes :</strong> Délai de 14 jours décomptés à partir du 1er jour ouvré suivant l'achat · Date limite = 1er jour ouvré après J+14.
                     </div>
                     <div style={{marginTop:10,padding:"9px 12px",borderRadius:8,background:"#FFF8E7",border:"1.5px solid #F5C040",fontSize:11,lineHeight:1.65,color:"#7A5000"}}>
@@ -2513,6 +2571,37 @@ function App() {
                       </div>
                     )}
                   </div>
+                  {resiliResult.deadline&&(()=>{
+                    const dlPassed=resiliResult.demande>resiliResult.deadline;
+                    const prevDeadline=addMonths(resiliResult.deadline,-1);
+                    const prevEffetDate=addMonths(resiliResult.effetDate,-1);
+                    return dlPassed?(
+                      <div style={{marginTop:10,borderRadius:10,padding:"12px 14px",background:"rgba(110,30,120,.04)",border:"1.5px solid rgba(110,30,120,.22)"}}>
+                        <div style={{fontSize:10,fontWeight:800,color:"var(--purple)",textTransform:"uppercase",letterSpacing:.7,marginBottom:10}}>📋 Cycle précédent · Recevabilité</div>
+                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:9}}>
+                          <div style={{flex:1,textAlign:"center"}}>
+                            <div style={{fontSize:10,color:"var(--tx-muted)",fontWeight:600,marginBottom:4}}>Deadline passée</div>
+                            <div style={{fontSize:12,fontWeight:800,color:"var(--prune)",background:"rgba(161,0,107,.07)",padding:"5px 10px",borderRadius:8,border:"1px solid rgba(161,0,107,.2)"}}>{fmtDate(prevDeadline)}</div>
+                          </div>
+                          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0}}>
+                            <div style={{width:28,height:1,background:"var(--border-mid)"}}/>
+                            <div style={{fontSize:9,color:"var(--tx-muted)",fontWeight:600,whiteSpace:"nowrap"}}>effet</div>
+                            <div style={{width:28,height:1,background:"var(--border-mid)"}}/>
+                          </div>
+                          <div style={{flex:1,textAlign:"center"}}>
+                            <div style={{fontSize:10,color:"var(--tx-muted)",fontWeight:600,marginBottom:4}}>Date d'effet</div>
+                            <div style={{fontSize:12,fontWeight:700,color:"var(--tx)",background:"var(--surface2)",padding:"5px 10px",borderRadius:8,border:"1px solid var(--border)"}}>{fmtDate(prevEffetDate)}</div>
+                          </div>
+                        </div>
+                        <div style={{fontSize:11.5,color:"var(--tx-mid)",lineHeight:1.55}}>Toute demande formulée avant le <strong style={{color:"var(--prune)"}}>{fmtDate(prevDeadline)}</strong> était recevable pour l'effet au <strong style={{color:"var(--tx)"}}>{fmtDate(prevEffetDate)}</strong>.</div>
+                      </div>
+                    ):(
+                      <div style={{marginTop:10,borderRadius:10,padding:"10px 14px",display:"flex",alignItems:"center",gap:10,background:"rgba(110,30,120,.06)",border:"1.5px solid #D8B4FF"}}>
+                        <span style={{fontSize:15,flexShrink:0}}>📅</span>
+                        <span style={{fontSize:12,lineHeight:1.5,color:"var(--tx)"}}>Toute demande formulée avant le <strong style={{color:"var(--purple)"}}>{fmtDate(resiliResult.deadline)}</strong> est recevable pour l'effet au <strong style={{color:"var(--purple)"}}>{fmtDate(resiliResult.effetDate)}</strong>.</span>
+                      </div>
+                    );
+                  })()}
                   {resiliResult.frais > 0 && (
                     <div style={{marginTop:10,borderRadius:14,overflow:"hidden",border:"1.5px solid var(--prune)"}}>
                       <div style={{display:"flex",alignItems:"center",gap:16,padding:"14px 18px",background:"var(--surface)"}}>
