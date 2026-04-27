@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="description" content="Calculateur BD30/G30 — Indemnisation retards SNCF selon PRR 2021"/>
   <meta name="theme-color" content="#A1006B"/>
-  <title>Calculateur BD30 / G30 · v3.3</title>
+  <title>Calculateur BD30 / G30 · v3.4</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"/>
@@ -14,9 +14,9 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     /* ══════════════════════════════════════════════════════════════
-       BD30/G30 CALCULATOR — Design System v3.3
+       BD30/G30 CALCULATOR — Design System v3.4
        Charte SNCF × Precision UI × Refined Glass
-       Auteur : PDSA · Refonte UX/UI : 2026
+       Auteur : PDSA · Refonte UX/UI : 2026 · Optimisation perf React
     ══════════════════════════════════════════════════════════════ */
 
     /* ── Tokens light ── */
@@ -88,13 +88,21 @@
     }
     #root { position:relative; z-index:1; }
 
-    /* Global transitions */
-    *, *::before, *::after {
-      transition-property:background-color,border-color,color,box-shadow,opacity;
+    /* ── Targeted transitions (remplace la règle * globale) ── */
+    .tab-btn, .icon-btn, .pill-btn, .tarif-pill, .delay-btn,
+    .sp-pill, .rbar-btn, .btn {
+      transition-property:background-color,border-color,color,box-shadow,transform,opacity;
       transition-duration:0.16s; transition-timing-function:ease;
     }
-    button, input, select, a {
-      transition-property:background-color,border-color,color,box-shadow,transform,opacity;
+    input.calc-input, select.calc-input {
+      transition-property:border-color,box-shadow;
+      transition-duration:0.16s; transition-timing-function:ease;
+    }
+    /* Theme transitions uniquement sur les surfaces */
+    body, .app-header, .tabs-nav, .card, .card-inset, .seg-card,
+    .result-bar, .history-panel, .mode-banner {
+      transition-property:background-color,border-color,color;
+      transition-duration:0.2s; transition-timing-function:ease;
     }
 
     /* ── Typography ── */
@@ -150,7 +158,7 @@
     }
     .header-right { display:flex; align-items:center; gap:7px; margin-left:auto; flex-shrink:0; }
 
-    /* ── Mode badge (G30/BD30) — redesign v3.3 ── */
+    /* ── Mode badge (G30/BD30) — redesign v3.4 ── */
     .mode-badge {
       display:inline-flex; align-items:center; gap:6px;
       padding:5px 12px; border-radius:var(--r-full);
@@ -178,7 +186,7 @@
     }
     .pill-btn:hover { border-color:var(--prune); color:var(--prune); background:var(--prune-lt); }
 
-    /* ── TABS ── v3.3: pill style ── */
+    /* ── TABS ── v3.4: pill style ── */
     .tabs-nav {
       background:var(--glass2); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
       border-bottom:1px solid var(--border);
@@ -282,7 +290,7 @@
       font-size:11px; font-weight:800;
     }
 
-    /* ── Mode banner (redesign v3.3) ── */
+    /* ── Mode banner (redesign v3.4) ── */
     .mode-banner {
       border-radius:var(--r-lg); padding:14px 18px; margin-bottom:16px;
       display:flex; align-items:flex-start; gap:14px;
@@ -385,7 +393,7 @@
       font-weight:800; letter-spacing:-0.5px;
     }
 
-    /* ── Sticky result bar (refined v3.3) ── */
+    /* ── Sticky result bar (refined v3.4) ── */
     .result-bar {
       position:fixed; bottom:0; left:0; right:0; z-index:200;
       background:linear-gradient(135deg, var(--prune-dk) 0%, var(--prune) 55%, #C4006A 100%);
@@ -560,7 +568,7 @@
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState, useEffect, useRef, useCallback } = React;
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
 // ══════════════════════════════════════════════════════════════════
 //  DONNÉES MÉTIER — inchangées (PRR 2021 · en vigueur 02/03/2026)
@@ -582,6 +590,11 @@ const CARRIERS = [
 ];
 const G30_CARRIER_IDS = ["tgv_dom","tgv_int","intercites","intercites_eco"];
 
+// ── Pré-calculs constants carriers (après CARRIERS et G30_CARRIER_IDS) ──
+const CARRIERS_ELIGIBLE     = CARRIERS.filter(c => c.group === "eligible");
+const CARRIERS_NON_ELIGIBLE = CARRIERS.filter(c => c.group === "non_eligible");
+const G30_CARRIERS          = CARRIERS.filter(c => G30_CARRIER_IDS.includes(c.id));
+
 const TARIFS = [
   { id:"standard",             label:"Standard",                  color:"#A1006B", desc:"Billet payant — indemnisation en % du prix" },
   { id:"carte_liberte_billet", label:"Carte Liberté/Avantage (billet)",    color:"#005E9E", desc:"Billet à tarif réduit Carte Liberté — taux standard avec plancher 5 € minimum par passager (≥ 30 min)" },
@@ -600,6 +613,8 @@ function getTarifsForCarrier(carrierId) {
   if (carrierId === "ter" || carrierId === "ter_krono" || carrierId === "ter_zou") return TARIFS_TER;
   return TARIFS;
 }
+// ── Pré-calcul Map pour lookup O(1) (déclaré après TARIFS) ──
+const TARIFS_MAP = new Map([...TARIFS, {id:"groupe",label:"Tarif Groupe"}].map(t => [t.id, t]));
 
 const RATES_STANDARD = {
   tgv_dom:        [[30,59,25,"BAD uniquement"],[60,119,25,"BAD/Virement"],[120,179,50,"BAD/Virement"],[180,239,75,"BAD/Virement"],[240,Infinity,75,"BAD/Virement"]],
@@ -858,8 +873,7 @@ function computeResiliation(dateActivation,dateDemande,mensualite,aboData){
 }
 
 // ── ID factory ───────────────────────────────────────────────────
-let _uid = 0;
-const uid = () => String(++_uid) + '_' + Date.now();
+const uid = (() => { let n=0; return () => `${++n}_${Date.now().toString(36)}`; })();
 const emptySegment  = () => ({ id:uid(), carrier:"", tarif:"", price:"", nbPass:1, multiPassMode:false, passengers:[] });
 const emptyPassenger= () => ({ id:uid(), tarif:"", price:"" });
 const emptyFrais    = () => ({ id:uid(), type:"restauration", qty:1, montant:"" });
@@ -1011,13 +1025,28 @@ function TimePicker({ value, onChange, highlight }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
+//  LOCALSTORAGE — helpers centralisés (lecture unique, écriture debounced)
+// ══════════════════════════════════════════════════════════════════
+const LS_KEY  = "bd30_state_v34";
+const LS_HIST = "bd30_hist_v34";
+let _lsCache = null;
+function lsRead() {
+  if (_lsCache !== null) return _lsCache;
+  try { _lsCache = JSON.parse(localStorage.getItem(LS_KEY) || "{}"); } catch { _lsCache = {}; }
+  return _lsCache;
+}
+function lsGet(k, def) { const v = lsRead(); return v[k] !== undefined ? v[k] : def; }
+let _lsTimer = null;
+function lsSet(partial) {
+  _lsCache = { ...lsRead(), ...partial };
+  if (_lsTimer) clearTimeout(_lsTimer);
+  _lsTimer = setTimeout(() => { try { localStorage.setItem(LS_KEY, JSON.stringify(_lsCache)); } catch {} _lsTimer = null; }, 400);
+}
+
+// ══════════════════════════════════════════════════════════════════
 //  APP
 // ══════════════════════════════════════════════════════════════════
 function App() {
-  // ── localStorage helpers ─────────────────────────────────────────
-  const LS = "bd30_state_v33";
-  const lsGet = (k, def) => { try { const v=JSON.parse(localStorage.getItem(LS)||"{}"); return v[k]!==undefined?v[k]:def; } catch { return def; } };
-  const lsSet = partial => { try { const c=JSON.parse(localStorage.getItem(LS)||"{}"); localStorage.setItem(LS,JSON.stringify({...c,...partial})); } catch {} };
 
   // ── Dark mode — data-theme approach ──────────────────────────────
   const [darkMode, setDarkMode] = useState(() => lsGet("darkMode", window.matchMedia("(prefers-color-scheme: dark)").matches));
@@ -1036,7 +1065,7 @@ function App() {
     document.title = "Calculateur BD30/G30 — SNCF Voyageurs";
   }, [darkMode]);
 
-  const toggleDark = () => setDarkMode(d => !d);
+  const toggleDark = useCallback(() => setDarkMode(d => !d), []);
 
   const [tab, setTab] = useState(() => lsGet("tab","retard"));
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
@@ -1058,13 +1087,13 @@ function App() {
   },[]);
 
   // ── History ──────────────────────────────────────────────────────
-  const [history, setHistory] = useState(() => { try { return JSON.parse(localStorage.getItem("bd30_hist_v33")||"[]"); } catch { return []; }});
+  const [history, setHistory] = useState(() => { try { return JSON.parse(localStorage.getItem(LS_HIST)||"[]"); } catch { return []; }});
   const [showHistory, setShowHistory] = useState(false);
-  const pushHistory = entry => setHistory(prev => { const n=[entry,...prev].slice(0,5); try{localStorage.setItem("bd30_hist_v33",JSON.stringify(n));}catch{} return n; });
+  const pushHistory = useCallback(entry => setHistory(prev => { const n=[entry,...prev].slice(0,5); try{localStorage.setItem(LS_HIST,JSON.stringify(n));}catch{} return n; }), []);
 
   // ── Retard state ─────────────────────────────────────────────────
   const [segments, setSegments] = useState(() => { const s=lsGet("segments",null); return s&&Array.isArray(s)&&s.length>0?s:[emptySegment()]; });
-  const isG30 = segments.length===1 && (!segments[0]?.carrier || G30_CARRIER_IDS.includes(segments[0].carrier));
+  const isG30 = useMemo(() => segments.length===1 && (!segments[0]?.carrier || G30_CARRIER_IDS.includes(segments[0].carrier)), [segments]);
   const [heureTheo, setHeureTheo] = useState(() => lsGet("heureTheo",""));
   const [heureReel, setHeureReel] = useState(() => lsGet("heureReel",""));
   const [sliderDelay, setSliderDelay] = useState(() => lsGet("sliderDelay",0));
@@ -1074,21 +1103,20 @@ function App() {
   const [exceptSegmentId, setExceptSegmentId] = useState(null);
   const [ouigoRealDelays, setOuigoRealDelays] = useState({});
   const [trsiMode, setTrsiMode] = useState(() => lsGet("trsiMode", {}));
-  const [computed, setComputed] = useState(null);
 
   useEffect(() => { if (timeDelay !== null) setSliderDelay(Math.min(360,timeDelay)); }, [timeDelay]);
 
-  const addSegment    = () => setSegments(s => [...s,{...emptySegment(),nbPass:s[0]?.nbPass||1}]);
-  const removeSegment = id => setSegments(s => { const n=s.filter(x=>x.id!==id); return n.length===0?[emptySegment()]:n; });
-  const updateSegment = (id,f,v) => setSegments(s => s.map(x => x.id===id?{...x,[f]:v}:x));
-  const setGlobalNbPass = n => setSegments(s => s.map(x => ({...x,nbPass:n})));
-  const changeCarrier = (segId,carrierId) => setSegments(s => s.map(x => {
+  const addSegment    = useCallback(() => setSegments(s => [...s,{...emptySegment(),nbPass:s[0]?.nbPass||1}]), []);
+  const removeSegment = useCallback(id => setSegments(s => { const n=s.filter(x=>x.id!==id); return n.length===0?[emptySegment()]:n; }), []);
+  const updateSegment = useCallback((id,f,v) => setSegments(s => s.map(x => x.id===id?{...x,[f]:v}:x)), []);
+  const setGlobalNbPass = useCallback(n => setSegments(s => s.map(x => ({...x,nbPass:n}))), []);
+  const changeCarrier = useCallback((segId,carrierId) => setSegments(s => s.map(x => {
     if (x.id!==segId) return x;
     const avail = getTarifsForCarrier(carrierId).map(t=>t.id);
     const newTarif = carrierId==="ouigo"?"standard":avail.includes(x.tarif)?x.tarif:"";
     return {...x,carrier:carrierId,tarif:newTarif,passengers:(x.passengers||[]).map(p=>({...p,tarif:carrierId==="ouigo"?"standard":avail.includes(p.tarif)?p.tarif:""}))};
-  }));
-  const toggleMultiPass = segId => setSegments(s => s.map(x => {
+  })), []);
+  const toggleMultiPass = useCallback(segId => setSegments(s => s.map(x => {
     if (x.id!==segId) return x;
     const next=!x.multiPassMode;
     if (!next) return {...x,multiPassMode:false};
@@ -1099,13 +1127,13 @@ function App() {
     const p1={...(existing[0]||emptyPassenger()),tarif:x.tarif||"",price:x.price||""};
     const rest=Array.from({length:Math.max(0,n-1)},(_,i)=>existing[i+1]||{...emptyPassenger(),tarif:defaultTarif,price:""});
     return {...x,multiPassMode:true,passengers:[p1,...rest]};
-  }));
-  const addPassenger    = segId => setSegments(s => s.map(x => x.id===segId?{...x,passengers:[...(x.passengers||[]),emptyPassenger()]}:x));
-  const removePassenger = (segId,passId) => setSegments(s => s.map(x => x.id===segId?{...x,passengers:x.passengers.filter(p=>p.id!==passId)}:x));
-  const updatePassenger = (segId,passId,f,v) => setSegments(s => s.map(x => x.id===segId?{...x,passengers:x.passengers.map(p=>p.id===passId?{...p,[f]:v}:p)}:x));
+  })), []);
+  const addPassenger    = useCallback(segId => setSegments(s => s.map(x => x.id===segId?{...x,passengers:[...(x.passengers||[]),emptyPassenger()]}:x)), []);
+  const removePassenger = useCallback((segId,passId) => setSegments(s => s.map(x => x.id===segId?{...x,passengers:x.passengers.filter(p=>p.id!==passId)}:x)), []);
+  const updatePassenger = useCallback((segId,passId,f,v) => setSegments(s => s.map(x => x.id===segId?{...x,passengers:x.passengers.map(p=>p.id===passId?{...p,[f]:v}:p)}:x)), []);
 
-  // ── Compute retard ───────────────────────────────────────────────
-  useEffect(() => {
+  // ── Compute retard (useMemo: pas de setState intermédiaire) ─────
+  const computed = useMemo(() => {
     const results = segments.map(seg => {
       const c = CARRIERS.find(c=>c.id===seg.carrier);
       const isEligible = c&&c.group==="eligible"&&!(seg.carrier==="ter_zou"&&trsiMode[seg.id]);
@@ -1128,9 +1156,14 @@ function App() {
         }
         if (ouigoRealDelayMin!==null) {
           ouigoBD30Due=amount;
-          const riAlready=getRateInfo("ouigo",seg.tarif,ouigoRealDelayMin);
-          const n=seg.tarif==="groupe"?1:(seg.nbPass||1);
-          ouigoAlreadyPaid=computeSegmentAmount(seg.price,seg.tarif,riAlready)*n;
+          const riAlready=getRateInfo("ouigo","standard",ouigoRealDelayMin);
+          if (seg.multiPassMode&&passengersResult.length>0) {
+            // Multi-pass : proratiser sur chaque passager
+            ouigoAlreadyPaid=passengersResult.reduce((s,p)=>s+computeSegmentAmount(p.price,"standard",riAlready),0);
+          } else {
+            const n=seg.nbPass||1;
+            ouigoAlreadyPaid=computeSegmentAmount(seg.price,"standard",riAlready)*n;
+          }
           const complement=Math.max(0,ouigoBD30Due-ouigoAlreadyPaid);
           ouigoRefus=ouigoAlreadyPaid>=ouigoBD30Due&&ouigoBD30Due>0;
           amount=complement;
@@ -1162,17 +1195,16 @@ function App() {
       if(seg.multiPassMode)return(seg.passengers||[]).some(p=>!p.tarif);
       return !seg.tarif;
     });
-    setComputed({results,baseTotal,total,exceptBonus,finalDelay,eligible:total>=4||hasPrimePoints,hasNonEligible:results.some(r=>!r.eligible),excLvl,exceptOnSegId,missingTarif});
-  },[segments,finalDelay,exceptLevel,exceptSegmentId,ouigoRealDelays,trsiMode]);
+    return {results,baseTotal,total,exceptBonus,finalDelay,eligible:total>=4||hasPrimePoints,hasNonEligible:results.some(r=>!r.eligible),excLvl,exceptOnSegId,missingTarif};
+  }, [segments,finalDelay,exceptLevel,exceptSegmentId,ouigoRealDelays,trsiMode,isG30]);
 
   // ── Frais ────────────────────────────────────────────────────────
   const [fraisList, setFraisList] = useState([]);
-  const [fraisComputed, setFraisComputed] = useState(null);
-  const addFrais    = () => setFraisList(f=>[...f,emptyFrais()]);
-  const removeFrais = id => setFraisList(f=>f.filter(x=>x.id!==id));
-  const updateFrais = (id,f,v) => setFraisList(l=>l.map(x=>x.id===id?{...x,[f]:v}:x));
-  useEffect(() => {
-    if (!fraisList.length) { setFraisComputed(null); return; }
+  const addFrais    = useCallback(() => setFraisList(f=>[...f,emptyFrais()]), []);
+  const removeFrais = useCallback(id => setFraisList(f=>f.filter(x=>x.id!==id)), []);
+  const updateFrais = useCallback((id,f,v) => setFraisList(l=>l.map(x=>x.id===id?{...x,[f]:v}:x)), []);
+  const fraisComputed = useMemo(() => {
+    if (!fraisList.length) return null;
     const results=fraisList.map(f=>{
       const def=FRAIS_TYPES.find(t=>t.id===f.type);
       const montant=parseFloat(f.montant)||0;
@@ -1180,8 +1212,8 @@ function App() {
       const plafond=def.max!=null?def.max*qty:null;
       return {...f,def,montant,qty,plafond,rembourse:plafond!=null?Math.min(montant,plafond):montant};
     });
-    setFraisComputed({results,total:results.reduce((a,r)=>a+r.rembourse,0)});
-  },[fraisList]);
+    return {results,total:results.reduce((a,r)=>a+r.rembourse,0)};
+  }, [fraisList]);
 
   // ── Dates ────────────────────────────────────────────────────────
   const [dateAchat, setDateAchat] = useState(() => lsGet("dateAchat",""));
@@ -1206,27 +1238,28 @@ function App() {
     lsSet({tab,heureTheo,heureReel,sliderDelay,segments,dateAchat,dateActivation,dateDemande,aboTypeId,aboMensualiteCustom,aboMensualiteVariable,trsiMode});
   },[tab,heureTheo,heureReel,sliderDelay,segments,dateAchat,dateActivation,dateDemande,aboTypeId,aboMensualiteCustom,aboMensualiteVariable,trsiMode]);
 
-  const aboType = ABONNEMENTS_MAX.find(a=>a.id===aboTypeId)||ABONNEMENTS_MAX[2];
-  const mensualiteEffective = aboTypeId==="custom"?(parseFloat(aboMensualiteCustom)||0):aboType.type==="mensuel_variable"?(parseFloat(aboMensualiteVariable)||0):(aboType.mensualite||0);
-  const retractResult = dateAchat?computeRetractation(dateAchat):null;
-  const carteRetractResult = dateAchat?computeRetractationCarte(dateAchat):null;
-  const resiliResult = (dateActivation&&dateDemande)?computeResiliation(dateActivation,dateDemande,mensualiteEffective,aboType):null;
+  const aboType = useMemo(() => ABONNEMENTS_MAX.find(a=>a.id===aboTypeId)||ABONNEMENTS_MAX[2], [aboTypeId]);
+  const mensualiteEffective = useMemo(() => aboTypeId==="custom"?(parseFloat(aboMensualiteCustom)||0):aboType.type==="mensuel_variable"?(parseFloat(aboMensualiteVariable)||0):(aboType.mensualite||0), [aboTypeId,aboType,aboMensualiteCustom,aboMensualiteVariable]);
+  const retractResult      = useMemo(() => dateAchat?computeRetractation(dateAchat):null, [dateAchat]);
+  const carteRetractResult = useMemo(() => dateAchat?computeRetractationCarte(dateAchat):null, [dateAchat]);
+  const resiliResult       = useMemo(() => (dateActivation&&dateDemande)?computeResiliation(dateActivation,dateDemande,mensualiteEffective,aboType):null, [dateActivation,dateDemande,mensualiteEffective,aboType]);
 
   // ── Reset ─────────────────────────────────────────────────────────
   const [resetConfirm,setResetConfirm]=useState(false);
-  const resetAll=()=>{
+  const resetAll=useCallback(()=>{
     if(!resetConfirm){setResetConfirm(true);setTimeout(()=>setResetConfirm(false),2500);return;}
     setSegments([emptySegment()]);setHeureTheo("");setHeureReel("");setSliderDelay(0);
-    setExceptLevel("none");setExceptSegmentId(null);setFraisList([]);setFraisComputed(null);setOuigoRealDelays({});
+    setExceptLevel("none");setExceptSegmentId(null);setFraisList([]);setOuigoRealDelays({});
     setDateAchat("");setDateActivation("");setDateDemande(new Date().toISOString().split("T")[0]);
     setAboTypeId("max_actif");setAboMensualiteCustom("");setAboMensualiteVariable("");setContratPro(false);setRetractType("abo");setDatesSection(null);
     setSpAvis("");setSpCos("");setSpVoyage("");setSpRenoncement("");setResetConfirm(false);
-    try{localStorage.removeItem('bd30_state_v33');}catch{}
-  };
+    _lsCache = {};
+    try{localStorage.removeItem(LS_KEY);}catch{}
+  },[resetConfirm]);
 
   // ── Copy result ───────────────────────────────────────────────────
   const [copied,setCopied]=useState(null);
-  const fmtRate=r=>{
+  const fmtRate=useCallback(r=>{
     if(!r.eligible)return"Non éligible BD30";
     const ri=r.rateInfo;
     if(!ri||ri.type===null)return"Aucune indemnisation";
@@ -1236,8 +1269,8 @@ function App() {
     if(ri.dual==="gvt_tiers"){const bad=ri.fixedAmount||0;return`${bad.toFixed(2)} € BAD GVT + ${bad.toFixed(2)} € BAD tiers`;}
     if(ri.fixedAmount!==null)return`Forfait : ${ri.fixedAmount.toFixed(2)} €`;
     return ri.type||"—";
-  };
-  const getTarifLabel=id=>[...TARIFS,{id:"groupe",label:"Tarif Groupe"}].find(t=>t.id===id)?.label||id||"—";
+  },[]);
+  const getTarifLabel=useCallback(id=>TARIFS_MAP.get(id)?.label||id||"—",[]);
   const copyResult=type=>{
     const segLine=r=>{
       const carrier=r.carrier?r.carrier.label:"-";
@@ -1300,7 +1333,7 @@ function App() {
   const hasG30    = computed && computed.eligible;
   const hasFrais  = fraisComputed && fraisComputed.total > 0;
   const showBoth  = hasG30 && hasFrais;
-  const grandTotal= (hasG30?computed.total:0)+(hasFrais?fraisComputed.total:0);
+  const grandTotal= useMemo(() => (hasG30?computed.total:0)+(hasFrais?fraisComputed.total:0), [hasG30,hasFrais,computed?.total,fraisComputed?.total]);
   const primary   = tab==="frais"&&hasFrais?"frais":"retard";
 
   // ══════════════════════════════════════════════════════════════════
@@ -1373,7 +1406,7 @@ function App() {
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               {history.length>0&&(
-                <button onClick={()=>{setHistory([]);try{localStorage.removeItem("bd30_hist_v33");}catch{}}} style={{background:"none",border:"1px solid var(--border)",color:"var(--tx-muted)",borderRadius:6,padding:"3px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                <button onClick={()=>{setHistory([]);try{localStorage.removeItem(LS_HIST);}catch{}}} style={{background:"none",border:"1px solid var(--border)",color:"var(--tx-muted)",borderRadius:6,padding:"3px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
                   Tout effacer
                 </button>
               )}
@@ -1413,7 +1446,7 @@ function App() {
                         onClick={()=>{
                           const next=history.filter(x=>x.ts!==h.ts);
                           setHistory(next);
-                          try{localStorage.setItem("bd30_hist_v33",JSON.stringify(next));}catch{}
+                          try{localStorage.setItem(LS_HIST,JSON.stringify(next));}catch{}
                         }}
                         title="Supprimer ce calcul"
                         style={{background:"none",border:"1px solid var(--border)",color:"var(--tx-muted)",borderRadius:6,width:22,height:22,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}
@@ -1507,7 +1540,7 @@ function App() {
         {/* ═══════ TAB : RETARD ═══════ */}
         {tab==="retard" && (
           <div id="panel-retard" role="tabpanel">
-            {/* Mode banner v3.3 */}
+            {/* Mode banner v3.4 */}
             <div className="mode-banner" style={{
               background:isG30?"var(--prune-lt)":"var(--blue-lt)",
               borderColor:isG30?"rgba(161,0,107,.2)":"rgba(0,136,206,.18)",
@@ -1561,7 +1594,7 @@ function App() {
                 const tarifInfo   = availTarifs.find(t=>t.id===seg.tarif);
                 const segColor    = isNE?"var(--amber)":(c?c.color:"var(--prune)");
                 const passengers  = seg.passengers||[];
-                const availableCarriers = isG30?CARRIERS.filter(c=>G30_CARRIER_IDS.includes(c.id)):CARRIERS;
+                const availableCarriers = isG30 ? G30_CARRIERS : CARRIERS;
                 let segBg="var(--surface2)",segBorder="var(--border)";
                 if(isNE){segBg="var(--amber-lt)";segBorder="rgba(224,82,6,.3)";}
                 else if(seg.tarif==="prime_titulaire"){segBg="var(--blue-lt)";segBorder="rgba(0,136,206,.25)";}
@@ -1586,8 +1619,8 @@ function App() {
                             </select>
                           : <select id={`carrier-${seg.id}`} className="calc-input" value={seg.carrier} onChange={e=>changeCarrier(seg.id,e.target.value)} style={isNE?{borderColor:"rgba(224,82,6,.4)"}:{}}>
                               <option value="" disabled>— Sélectionner —</option>
-                              <optgroup label="✅ Éligibles BD30">{CARRIERS.filter(c=>c.group==="eligible").map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</optgroup>
-                              <optgroup label="❌ Hors périmètre BD30">{CARRIERS.filter(c=>c.group==="non_eligible").map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</optgroup>
+                              <optgroup label="✅ Éligibles BD30">{CARRIERS_ELIGIBLE.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</optgroup>
+                              <optgroup label="❌ Hors périmètre BD30">{CARRIERS_NON_ELIGIBLE.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</optgroup>
                             </select>
                         }
                         {isNE && (
@@ -1622,13 +1655,25 @@ function App() {
                     {/* Tarif + passengers section */}
                     {!isNE && seg.carrier && (
                       <div style={{marginTop:12,paddingTop:12,borderTop:`1px dashed ${segBorder}`}}>
-                        {/* OUIGO: auto-standard */}
+                        {/* OUIGO: tarif standard + bouton multi-prix */}
                         {seg.carrier==="ouigo" ? (
-                          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                            <span className="label" style={{margin:0}}>Tarif</span>
-                            <span className="badge badge-prune" style={{color:"#E8005D",background:"rgba(232,0,93,.1)",border:"1.5px solid rgba(232,0,93,.25)"}}>
-                              Standard — automatique
-                            </span>
+                          <div style={{marginBottom:8}}>
+                            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                <span className="label" style={{margin:0}}>Tarif</span>
+                                <span className="badge" style={{color:"#E8005D",background:"rgba(232,0,93,.1)",border:"1.5px solid rgba(232,0,93,.25)"}}>
+                                  Standard — automatique
+                                </span>
+                              </div>
+                              <button onClick={()=>toggleMultiPass(seg.id)} className={`btn btn-sm${seg.multiPassMode?" btn-primary":" btn-outline"}`} style={{fontSize:11}}>
+                                {seg.multiPassMode?"👥 Prix différents":"👤 Même prix"}
+                              </button>
+                            </div>
+                            {seg.multiPassMode && (
+                              <div style={{fontSize:11,color:"#E8005D",marginTop:5,lineHeight:1.5}}>
+                                Chaque passager conserve le tarif <strong>Standard</strong> — saisissez le prix de chaque billet individuellement.
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div style={{marginBottom:8}}>
@@ -1667,9 +1712,13 @@ function App() {
                           const val=ouigoRealDelays[seg.id]!==undefined?ouigoRealDelays[seg.id]:"";
                           const hasVal=val!==""&&parseInt(val)>0;
                           const ouigoDelay=parseInt(val)||0;
-                          const riPro=hasVal?getRateInfo("ouigo",seg.tarif,ouigoDelay):null;
-                          const n=seg.tarif==="groupe"?1:(seg.nbPass||1);
-                          const proAmt=riPro?computeSegmentAmount(seg.price,seg.tarif,riPro)*n:0;
+                          const riPro=hasVal?getRateInfo("ouigo","standard",ouigoDelay):null;
+                          const passengers=seg.passengers||[];
+                          const proAmt=riPro?(
+                            seg.multiPassMode&&passengers.length>0
+                              ? passengers.reduce((s,p)=>s+computeSegmentAmount(p.price||0,"standard",riPro),0)
+                              : computeSegmentAmount(seg.price,"standard",riPro)*(seg.nbPass||1)
+                          ):0;
                           return (
                             <div style={{marginBottom:12,padding:"11px 13px",borderRadius:"var(--r-md)",background:hasVal?"var(--purple-lt)":"rgba(110,30,120,.04)",border:`1.5px ${hasVal?"solid":"dashed"} ${hasVal?"rgba(110,30,120,.3)":"rgba(110,30,120,.15)"}`}}>
                               <div className="label" style={{color:hasVal?"var(--purple)":"var(--tx-muted)",marginBottom:7}}>RT 6373 — Retard réel OUIGO (trajet sec)</div>
@@ -1731,16 +1780,23 @@ function App() {
                             {passengers.map((p,pi)=>{
                               const availTPs=getTarifsForCarrier(seg.carrier).filter(t=>t.id!=="groupe");
                               const pIsMax=["max_loisirs","prime_titulaire","prime_fid_tiers","prime_gvt_tiers"].includes(p.tarif);
+                              const isOuigo=seg.carrier==="ouigo";
                               return (
                                 <div key={p.id} className="pass-row">
                                   <span style={{fontSize:10.5,fontWeight:800,color:"var(--tx-muted)",width:28,textAlign:"center",flexShrink:0}}>P{pi+1}</span>
-                                  <div style={{flex:1,minWidth:0}}>
-                                    <select value={p.tarif} onChange={e=>updatePassenger(seg.id,p.id,"tarif",e.target.value)}
-                                      className="calc-input" style={{padding:"6px 10px",fontSize:12}}>
-                                      <option value="" disabled>— Tarif —</option>
-                                      {availTPs.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}
-                                    </select>
-                                  </div>
+                                  {isOuigo ? (
+                                    <div style={{flex:1,display:"flex",alignItems:"center"}}>
+                                      <span className="badge" style={{color:"#E8005D",background:"rgba(232,0,93,.1)",border:"1.5px solid rgba(232,0,93,.2)",fontSize:11}}>Standard</span>
+                                    </div>
+                                  ) : (
+                                    <div style={{flex:1,minWidth:0}}>
+                                      <select value={p.tarif} onChange={e=>updatePassenger(seg.id,p.id,"tarif",e.target.value)}
+                                        className="calc-input" style={{padding:"6px 10px",fontSize:12}}>
+                                        <option value="" disabled>— Tarif —</option>
+                                        {availTPs.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}
+                                      </select>
+                                    </div>
+                                  )}
                                   <div style={{width:90,flexShrink:0}}>
                                     <input type="number" min="0" step="0.01" placeholder="0.00" value={p.price}
                                       onChange={e=>updatePassenger(seg.id,p.id,"price",e.target.value)}
@@ -1901,7 +1957,7 @@ function App() {
                             {r.eligible
                               ?(r.multiPassMode
                                 ? <span style={{fontStyle:"italic",color:"var(--blue)",fontWeight:600}}>Multi-tarifs · {(r.passengersResult||[]).length} passager{(r.passengersResult||[]).length>1?"s":""}</span>
-                                : [...TARIFS,{id:"groupe",label:"Tarif Groupe"}].find(t=>t.id===r.tarif)?.label||"—")
+                                : TARIFS_MAP.get(r.tarif)?.label||"—")
                               :<em>Hors périmètre BD30</em>
                             }
                             {ri&&ri.type&&r.eligible&&!r.multiPassMode&&(
@@ -1915,7 +1971,7 @@ function App() {
                             <div style={{marginTop:8,borderTop:"1px dashed var(--border)",paddingTop:8,display:"flex",flexDirection:"column",gap:5}}>
                               {r.passengersResult.map((p,pi)=>{
                                 const pri = p.rateInfo;
-                                const pTarifLabel = [...TARIFS,{id:"groupe",label:"Tarif Groupe"}].find(t=>t.id===p.tarif)?.label||p.tarif||"—";
+                                const pTarifLabel = TARIFS_MAP.get(p.tarif)?.label||p.tarif||"—";
                                 const pColor = TARIFS.find(t=>t.id===p.tarif)?.color||"var(--prune)";
                                 const isMaxP = ["max_loisirs","prime_titulaire","prime_fid_tiers","prime_gvt_tiers"].includes(p.tarif);
                                 const rateStr = pri?.points>0 ? `${pri.points} pts FID`
@@ -2983,7 +3039,7 @@ function App() {
 
       {/* ── FOOTER ─────────────────────────────────────────────── */}
       <footer className="app-footer">
-        Calculateur BD30/G30 · <strong style={{color:"var(--prune)"}}>v3.3</strong> · PDSA · Règlement PRR 2021 · En vigueur au 02/03/2026 · À titre indicatif uniquement
+        Calculateur BD30/G30 · <strong style={{color:"var(--prune)"}}>v3.4</strong> · PDSA · Règlement PRR 2021 · En vigueur au 02/03/2026 · À titre indicatif uniquement
       </footer>
 
     </div>
