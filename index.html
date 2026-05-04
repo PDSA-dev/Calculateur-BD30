@@ -654,8 +654,8 @@ function getRateInfo(carrierId, tarif, delayMin) {
     return { rate:0, fixedAmount:null, points:null, dual:null, type:null };
   }
   if (tarif === "prime_seul_tiers") {
-    for (const [mn,mx,amt] of RATES_PRIME_SEUL_TIERS) if (delayMin >= mn && delayMin <= mx) return { rate:0, fixedAmount:amt, points:null, dual:null, type:"BAD forfaitaire tiers (RT 5829)" };
-    return { rate:0, fixedAmount:null, points:null, dual:null, type:null };
+    for (const [mn,mx,amt] of RATES_PRIME_SEUL_TIERS) if (delayMin >= mn && delayMin <= mx) return { rate:0, fixedAmount:amt, points:null, pointsRef:getPrimePts(delayMin), dual:null, type:"BAD forfaitaire tiers (RT 5829)" };
+    return { rate:0, fixedAmount:null, points:null, pointsRef:null, dual:null, type:null };
   }
   const table = RATES_STANDARD[carrierId];
   if (!table) return { rate:0, fixedAmount:null, points:null, type:null };
@@ -1978,7 +1978,7 @@ function App() {
                             <div style={{marginTop:6,fontSize:11,color:"var(--amber)",lineHeight:1.65,padding:"6px 10px",background:"var(--amber-lt)",borderRadius:6,border:"1px solid rgba(224,82,6,.25)"}}>
                               <strong>Client loisir (tiers) :</strong> {ri.fixedAmount} € BAD
                               <span style={{margin:"0 6px",opacity:.5}}>·</span>
-                              <strong>Titulaire fidélisé :</strong> remboursé en points
+                              <strong>Titulaire fidélisé :</strong> {ri.pointsRef>0?`${ri.pointsRef} pts FID`:"remboursé en points"}
                               <span style={{display:"block",marginTop:3,color:"var(--tx-mid)",fontWeight:600}}>⚠️ Transférer dossier → file <strong>Fid GVLC</strong> avec note interne <em>"billet prime pour tiers"</em></span>
                             </div>
                           )}
