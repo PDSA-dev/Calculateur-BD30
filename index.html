@@ -618,7 +618,7 @@ const RATES_MAX_LOISIRS = {
 };
 const RATES_PRIME_TITULAIRE  = [[30,59,1000,"pts"],[60,119,2000,"pts"],[120,179,3000,"pts"],[180,Infinity,4000,"pts"]];
 const RATES_PRIME_BAD        = [[30,59,10,"BAD"],[60,119,10,"BAD"],[120,179,20,"BAD"],[180,Infinity,20,"BAD"]];
-const RATES_PRIME_SEUL_TIERS = [[30,179,10,"BAD"],[180,Infinity,20,"BAD"]];
+const RATES_PRIME_SEUL_TIERS = [[30,59,10,"BAD"],[60,119,10,"BAD"],[120,179,20,"BAD"],[180,Infinity,20,"BAD"]];
 const EXCEPT_LEVELS = [
   { id:"none",label:"Aucune",              multiplier:null,fixedMax:null },
   { id:"100", label:"100% — RBT intégral", multiplier:1.0, fixedMax:20  },
@@ -2872,7 +2872,7 @@ function App() {
                       <tbody>
                         <tr><td style={{fontWeight:700,color:"var(--blue)"}}>30–59 min</td><td>1 000 pts</td><td>1 000 pts + 10 € BAD</td><td>10 € BAD × 2</td><td style={{color:"var(--amber)",fontWeight:700}}>10 € BAD</td></tr>
                         <tr><td style={{fontWeight:700,color:"var(--blue)"}}>60–119 min</td><td>2 000 pts</td><td>2 000 pts + 10 € BAD</td><td>10 € BAD × 2</td><td style={{color:"var(--amber)",fontWeight:700}}>10 € BAD</td></tr>
-                        <tr><td style={{fontWeight:700,color:"var(--blue)"}}>120–179 min</td><td>3 000 pts</td><td>3 000 pts + 20 € BAD</td><td>20 € BAD × 2</td><td style={{color:"var(--amber)",fontWeight:700}}>10 € BAD</td></tr>
+                        <tr><td style={{fontWeight:700,color:"var(--blue)"}}>120–179 min</td><td>3 000 pts</td><td>3 000 pts + 20 € BAD</td><td>20 € BAD × 2</td><td style={{color:"var(--amber)",fontWeight:700}}>20 € BAD</td></tr>
                         <tr><td style={{fontWeight:700,color:"var(--blue)"}}>≥ 180 min</td><td>4 000 pts</td><td>4 000 pts + 20 € BAD</td><td>20 € BAD × 2</td><td style={{color:"var(--amber)",fontWeight:700}}>20 € BAD</td></tr>
                       </tbody>
                     </table>
